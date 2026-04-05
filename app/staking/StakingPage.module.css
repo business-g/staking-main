@@ -1,0 +1,3865 @@
+/* ============================================================
+   Icon wrapper  (16×16, clipped, relative-positioned)
+   ============================================================ */
+.iconWrap {
+  position: relative;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* ============================================================
+   Page shell
+   ============================================================ */
+.page {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  background-color: var(--color-dark-950);
+  font-family: var(--font-ui);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+.appShell {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  transition: filter 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: filter;
+}
+
+.appShellBlurred {
+  filter: blur(5px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .appShell,
+  .appShellBlurred {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   Header
+   ============================================================ */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 68px;
+  background-color: var(--color-dark-950);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.headerInner {
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  height: 100%;
+}
+
+/* Logo */
+.logo {
+  position: absolute;
+  left: var(--space-24);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.logoText {
+  font-family: var(--font-logo);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 24px;
+  color: var(--color-mid-50);
+  white-space: nowrap;
+}
+
+/* Nav */
+.nav {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.navItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  height: 40px;
+  padding: 0 var(--space-16);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-lh);
+  color: var(--color-mid-400);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-variant-numeric: lining-nums proportional-nums;
+  /* Single transition on the button cascades to both icon (via currentColor) and text */
+  transition: color 150ms ease-out;
+}
+
+.navItem:not(.navItemActive):hover {
+  color: var(--color-mid-50);
+}
+
+.navItem:focus,
+.navItem:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.navItemActiveFallback {
+  background: var(--color-dark-800);
+  color: var(--color-mid-50);
+}
+
+/* Icon rendered as a CSS mask so background-color: currentColor follows the button's color */
+.navIcon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+
+.navLabel {
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+/* Wallet button */
+.walletButton {
+  position: absolute;
+  right: var(--space-24);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  height: 40px;
+  padding: 0 var(--space-16);
+  width: fit-content;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  overflow: visible;
+  box-shadow: var(--shadow-outer);
+  will-change: transform;
+  /* Release: spring back with ease-out-quint */
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 150ms ease;
+}
+
+.walletButton::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--grad-surface);
+  pointer-events: none;
+}
+
+.walletButton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--shadow-inset-highlight);
+  pointer-events: none;
+}
+
+.walletButton:hover { opacity: 0.85; }
+
+.walletButton:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.walletButton:active {
+  /* Combine with existing translateY to preserve vertical centering */
+  transform: translateY(-50%) scale(0.95);
+  opacity: 1;
+  /* Press: ultra-fast so it feels instant and responsive */
+  transition: transform 80ms ease-out, opacity 80ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .walletButton,
+  .walletButton:active {
+    transition: opacity 150ms ease;
+    transform: translateY(-50%);
+  }
+}
+
+.walletAddress {
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-lh);
+  color: var(--color-mid-50);
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+/* Both states stacked in the same grid cell — no layout shift on swap */
+.walletBtnSlot {
+  display: grid;
+  position: relative;
+  z-index: 1;
+}
+
+.walletBtnLayer {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  will-change: opacity, transform;
+}
+
+/* Enter: snappy start, graceful settle */
+.walletBtnLayerVisible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 320ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Exit: quick and clean, slides slightly down */
+/* position: absolute takes it out of grid flow so the slot sizes to the visible layer only */
+.walletBtnLayerHidden {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .walletBtnLayerVisible,
+  .walletBtnLayerHidden {
+    transition: opacity 150ms ease;
+    transform: none;
+  }
+}
+
+/* ============================================================
+   Page content area
+   ============================================================ */
+.content {
+  width: 100%;
+  max-width: 1440px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ============================================================
+   Top bar — Steps + Mode switch
+   ============================================================ */
+.topBar {
+  width: 576px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 56px;
+}
+
+/* Steps indicator */
+.stepsIndicator {
+  position: relative;
+  width: 77px;
+  height: 20px;
+}
+
+.stepsLabel {
+  position: absolute;
+  top: 10%;
+  bottom: 10%;
+  left: 0;
+  right: 51.95%;
+  display: flex;
+  align-items: center;
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-lh);
+  color: var(--color-mid-400);
+  font-variant-numeric: lining-nums proportional-nums;
+  white-space: nowrap;
+}
+
+.stepDot {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 12px;
+}
+
+.stepDotActive {
+  background-color: var(--color-mid-50);
+}
+
+.stepDotDefault {
+  background-color: var(--color-dark-800);
+}
+
+/* Mode switch */
+.modeSwitch {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  margin-left: auto;
+}
+
+.modeSwitchWrapper {
+  position: relative;
+}
+
+.modeSwitchList {
+  position: relative;
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.modeSwitchItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 var(--space-12);
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-lh);
+  color: var(--color-mid-400);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 150ms ease-out;
+}
+
+.modeSwitchItem:not(.modeSwitchItemActive):hover {
+  color: var(--color-mid-50);
+}
+
+.modeSwitchItem:focus,
+.modeSwitchItem:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.modeSwitchItemActive { color: var(--color-mid-50); }
+
+.modeSwitchItemActiveFallback {
+  border-radius: 9999px;
+  background: var(--color-dark-800);
+  color: var(--color-mid-50);
+}
+
+.modeSwitchOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--grad-surface);
+  overflow: hidden;
+  pointer-events: none;
+  transition: clip-path 0.25s ease;
+  color: var(--color-mid-50);
+}
+
+.overlayPending {
+  visibility: hidden;
+}
+
+.overlayReady {
+  visibility: visible;
+}
+
+.modeSwitchItemOverlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 var(--space-12);
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-lh);
+  background: transparent;
+  border: none;
+  white-space: nowrap;
+}
+
+.modeSwitchOverlay .modeSwitchItemOverlay,
+.modeSwitchOverlay .modeSwitchItemOverlay:hover {
+  color: var(--color-mid-50) !important;
+}
+
+.modeSwitchHighlight {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 9999px;
+  box-shadow: var(--shadow-outer), var(--shadow-inset-highlight);
+  pointer-events: none;
+  z-index: 3;
+  transition: left 0.25s ease, width 0.25s ease;
+}
+
+/* ============================================================
+   Stake form card
+   ============================================================ */
+.card {
+  position: relative;
+  width: 576px;
+  border-radius: 24px;
+  background-color: var(--color-dark-900);
+  padding: var(--space-24);
+  margin-top: var(--space-16);
+  box-shadow: inset 0 0 1px 0 rgba(255, 255, 255, 0.24);
+  min-height: 556px;
+}
+
+
+/* ============================================================
+   Step 3 — Confirming
+   ============================================================ */
+.s3Container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(604px - 48px); /* matches Step 1 card height minus top+bottom padding */
+  gap: 24px;
+}
+
+.s3TextBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.s3Title {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: 700;
+  color: var(--color-mid-50);
+  text-align: center;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.s3Subtitle {
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-lh);
+  font-weight: 600;
+  color: var(--color-mid-400);
+  text-align: center;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.s3ExplorerLink {
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-lh);
+  font-weight: 600;
+  color: var(--color-teal-200);
+  text-align: center;
+  text-decoration: none;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+  transition: color 150ms ease-out;
+}
+
+.s3ExplorerLink:hover {
+  color: var(--color-teal-100);
+}
+
+/* ============================================================
+   Step 4 — Success
+   ============================================================ */
+.s4Container {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(604px - 48px);
+  position: relative;
+}
+
+.s4Content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.s4Icon {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+}
+
+.s4TextBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.s4Title {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: 700;
+  color: var(--color-mid-50);
+  text-align: center;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.s4Subtitle {
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-lh);
+  font-weight: 500;
+  color: var(--color-mid-400);
+  text-align: center;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.s4Buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ============================================================
+   Unstake screen
+   ============================================================ */
+
+/* Figma positions (card outer edge):
+   - tokens img: top 132px, centered
+   - text block: top 340px, centered
+   - button: top 432px, centered
+   Card padding: 24px → subtract to get content-box offsets */
+
+.unstakeContainer {
+  position: relative;
+  height: calc(556px - 48px); /* fixed to match .card min-height minus top+bottom padding */
+}
+
+.unstakeTokensImg {
+  position: absolute;
+  width: 435px;
+  height: 247px;
+  top: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  overflow: hidden;
+}
+
+.unstakeTextBlock {
+  width: 397px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.unstakeContentBlock {
+  position: absolute;
+  width: 397px;
+  top: 347px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.unstakeTitle {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: 700;
+  color: var(--color-mid-50);
+  text-align: center;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.unstakeSubtitle {
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-lh);
+  font-weight: 500;
+  color: var(--color-mid-400);
+  text-align: center;
+  width: 309px;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+/* Button: 12px below the subtitle in the empty unstake state */
+.unstakeBtn {
+  transform-origin: center;
+  display: block;
+}
+
+/* ---------------------------------------------------------------------------
+   Active stakes view
+   --------------------------------------------------------------------------- */
+
+.positionsTitle {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: 700;
+  color: var(--color-mid-50);
+  white-space: nowrap;
+}
+
+.positionsCount {
+  color: var(--color-mid-400);
+}
+
+.positionsFilter {
+  margin-top: 20px;
+}
+
+.positionsListWrap {
+  position: relative;
+  margin-top: 20px;
+  flex: 1;
+  min-height: 0;
+}
+
+.positionsList {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.positionsList::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Position card — redesigned (269px, Figma node 7250:2076)
+   --------------------------------------------------------------------------- */
+
+.positionCard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--color-dark-900);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.positionCardFrame {
+  position: relative;
+  width: 100%;
+  height: 277px;
+  padding: 4px;
+  background: var(--color-dark-950);
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Outer inset highlight rendered as a separate div (not ::after, so it stays above buttons) */
+.positionCardInset {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Amount staked label */
+.positionAmountLabel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--color-mid-400);
+  white-space: nowrap;
+}
+
+/* Amount value */
+.positionAmount {
+  position: absolute;
+  top: 36px;
+  left: 16px;
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 700;
+  color: var(--color-mid-50);
+  white-space: nowrap;
+}
+
+/* Compounded rewards sub-label below amount */
+
+/* Auto-compound label */
+.positionAcLabel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--color-mid-400);
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Divider lines */
+.positionDivider1,
+.positionDivider2,
+.positionDivider3 {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: none;
+  border-top: 1px dashed var(--color-dark-800);
+}
+
+.positionDivider1 { top: 84px; }
+.positionDivider2 { top: 132px; }
+.positionDivider3 { top: 201px; }
+
+/* Icon box (clock / star) */
+.positionIconBox {
+  position: absolute;
+  left: 16px;
+  width: 36px;
+  height: 36px;
+  background: var(--color-dark-800);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Section label (caption, left-64) */
+.positionSectionLabel {
+  position: absolute;
+  left: 64px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--color-mid-400);
+  white-space: nowrap;
+}
+
+.positionUnlockedLabel {
+  color: #ab9ff2;
+}
+
+/* Section value row (left-64) */
+.positionSectionValue {
+  position: absolute;
+  left: 64px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.positionValueText {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--color-dark-50, #f5f5f5);
+  white-space: nowrap;
+}
+
+.positionValueSub {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--color-mid-400);
+  white-space: nowrap;
+}
+
+/* "Added to your stake" subtext */
+/* Shared button shell */
+.positionUnstakeBtn,
+.positionHarvestBtn {
+  position: absolute;
+  right: 16px;
+  height: 32px;
+  padding: 1px;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  will-change: transform;
+  backface-visibility: hidden;
+  transition: transform 200ms ease, background-color 200ms ease-out;
+}
+
+.positionUnstakeBtn {
+  width: 86px;
+}
+
+.positionHarvestBtn {
+  width: 78px;
+}
+
+/* Teal — unlocked Unstake */
+.positionUnstakeBtnActive {
+  background: var(--color-teal-300, #6dbec2);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.positionUnstakeBtnActive .positionUnstakeBtnInner {
+  background: var(--color-teal-200, #90f9ff);
+  position: relative;
+  box-shadow:
+    inset 0px 1px 1px 0.2px white;
+}
+
+.positionUnstakeBtnActive:hover .positionUnstakeBtnInner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.5) 100%);
+  pointer-events: none;
+}
+
+.positionUnstakeBtnActive:active {
+  transform: scale(0.99);
+  transition: transform 120ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.positionUnstakeBtnActive:active .positionUnstakeBtnInner {
+  box-shadow:
+    inset 0 0 2px 1px rgba(38, 115, 122, 0.5),
+    inset 0 1px 2px 0   rgba(38, 115, 122, 0.7);
+}
+
+.positionUnstakeBtnActive .positionUnstakeBtnText {
+  color: var(--color-dark-950, #0d0d0d);
+}
+
+/* Gray — locked Unstake */
+.positionUnstakeBtnLocked {
+  background: none;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  cursor: default;
+}
+
+.positionUnstakeBtnLocked .positionUnstakeBtnInner {
+  background: #7E7C87;
+  box-shadow: none;
+}
+
+.positionUnstakeBtnLocked .positionUnstakeBtnText {
+  color: #C8C6CF;
+}
+
+/* Harvest button — dark with white text */
+.positionHarvestBtn {
+  background: none;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.positionHarvestBtn .positionUnstakeBtnInner {
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.05) 100%),
+    linear-gradient(90deg, rgb(30, 30, 31) 0%, rgb(30, 30, 31) 100%);
+  box-shadow:
+    inset 0px 1px 0.5px 0px rgba(255, 255, 255, 0.1),
+    inset 0px 0px 0px 1px rgba(255, 255, 255, 0.06);
+  transition: background 200ms ease;
+}
+
+.positionHarvestBtn:hover .positionUnstakeBtnInner {
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.1) 100%),
+    linear-gradient(90deg, rgb(30, 30, 31) 0%, rgb(30, 30, 31) 100%);
+}
+
+.positionHarvestBtn:active {
+  transform: scale(0.99);
+  transition: transform 120ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.positionHarvestBtnText {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: center;
+  position: relative;
+  color: var(--color-mid-50, #fafafa);
+}
+
+.positionUnstakeBtnInner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1px;
+  min-width: 1px;
+  padding: 7px 16px;
+  border-radius: 9999px;
+  position: relative;
+  flex: 1;
+}
+
+.positionUnstakeBtnText {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: center;
+  position: relative;
+}
+
+.positionMetaItem {
+  position: absolute;
+  top: 100px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--color-mid-400);
+  white-space: nowrap;
+  margin: 0;
+}
+
+.positionMetaItemLeft {
+  left: 16px;
+}
+
+.positionMetaItemRight {
+  right: 16px;
+}
+
+.positionMetaValue {
+  color: var(--color-mid-50, #fafafa);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .positionUnstakeBtn,
+  .positionHarvestBtn {
+    transition: none;
+  }
+  .positionUnstakeBtnActive:active,
+  .positionHarvestBtn:active {
+    transform: none;
+    transition: none;
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-24);
+}
+
+.cardTitle {
+  font-family: var(--font-ui);
+  font-size: var(--text-title-size);
+  font-weight: 700;
+  line-height: var(--text-title-lh);
+  color: var(--color-mid-50);
+  font-variant-numeric: lining-nums proportional-nums;
+  margin: 0;
+}
+
+.walletBalance {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.walletBalanceText {
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-lh);
+  color: var(--color-mid-400);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Step transition — opacity + translateX move-in effect
+   Emil Kowalski: exiting → ease-in (slow end, punchy exit)
+                  entering → ease-out-expo (instant start, premium settle)
+   Entering is delayed 180ms so exit fully completes first.
+   ============================================================ */
+/* Hidden preload container — zero-size, clipped.
+   Images inside still load; they're just not visible. */
+.s2IconPreload {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.stepFadeExit {
+  animation: stepExit 150ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.stepFadeEnter {
+  animation: stepEnter 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.stepFadeExitBack {
+  animation: stepExitBack 150ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.stepFadeEnterBack {
+  animation: stepEnterBack 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes stepExit {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-20px); }
+}
+
+@keyframes stepEnter {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes stepExitBack {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(20px); }
+}
+
+@keyframes stepEnterBack {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepFadeExit      { animation: none; }
+  .stepFadeEnter     { animation: none; }
+  .stepFadeExitBack  { animation: none; }
+  .stepFadeEnterBack { animation: none; }
+}
+
+/* ============================================================
+   Step 2 — Review screen (pixel-perfect from Figma 7209-1007)
+   ============================================================ */
+
+/* Back button — two-vector layered image, opacity-based hover */
+.s2BackBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.55;
+  will-change: transform;
+  transition: opacity 150ms ease, transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.s2BackBtn:hover { opacity: 1; }
+
+.s2BackBtn:active {
+  opacity: 0.75;
+  transform: scale(0.88);
+  transition: opacity 80ms ease-out, transform 80ms ease-out;
+}
+
+.s2Content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Scrollable region — grows to fill space between header and button */
+.s2Scrollable {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Button pinned to bottom inside Step 2's flex column */
+.s2Content .continueButton {
+  flex-shrink: 0;
+  margin-top: 16px;
+}
+
+/* Rows section: flex column, no extra margin — dividers handle spacing */
+.s2Rows {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Single review row — 20px vertical padding to match Figma row spacing */
+.s2Row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+  padding: 20px 0;
+}
+
+/* 48×48 icon container — Figma: combined gradient + inset shadows */
+.s2RowIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--color-dark-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Label + value stacked column */
+.s2RowTexts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.s2RowLabel {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: var(--color-mid-400);
+}
+
+.s2RowValue {
+  font-family: var(--font-ui);
+  font-size: var(--text-medium-size);
+  font-weight: 600;
+  line-height: var(--text-medium-lh);
+  color: var(--color-mid-50);
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+/* Dividers — Figma: #0d0d0d base + white inset highlight, pill-shaped */
+.s2Divider {
+  height: 1px;
+  border-radius: 400px;
+  background: var(--color-dark-800);
+}
+
+/* Info block — purple-tinted, Figma exact shadows */
+.s2InfoBlock {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: var(--space-12) 16px;
+  border-radius: var(--radius-md);
+  background: rgba(171, 159, 242, 0.1);
+  box-shadow:
+    0px 0px 0px 1px rgba(0, 0, 0, 0.35),
+    inset 0px 1px 0px 0px rgba(255, 255, 255, 0.1),
+    inset 0px 0px 0px 1px rgba(255, 255, 255, 0.06);
+  margin-top: 24px;
+}
+
+/* Info text — #ab9ff2 purple per Figma, 12px semibold */
+.s2InfoText {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: #ab9ff2;
+}
+
+/* ============================================================
+   Amount input
+   ============================================================ */
+.amountInputWrapper {
+  position: relative;
+  margin-bottom: var(--space-24);
+}
+
+.amountInput {
+  position: relative;
+  height: 72px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-dark-800);
+  background-color: var(--color-dark-950);
+  box-shadow: var(--shadow-outer);
+  overflow: hidden;
+  transition: border-color 200ms ease-out;
+}
+
+.amountInput:focus-within {
+  border-color: #3a3a3a;
+}
+
+.amountInput:hover {
+  border-color: #3a3a3a;
+}
+
+/* Error state — overrides both default and focus-within border/shadow */
+.amountInputError,
+.amountInputError:focus-within {
+  border-color: #ff9c4b;
+  box-shadow: none;
+}
+
+.amountInputError .amountInputInset {
+  box-shadow: none;
+}
+
+.amountErrorText {
+  position: absolute;
+  right: 0;
+  top: calc(72px + 7px);
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: #ff9c4b;
+  white-space: nowrap;
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+.amountTokenIcon {
+  display: block;
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 28px;
+  background-color: currentColor;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  color: var(--color-mid-400);
+  transition: color 300ms ease-out, filter 300ms ease-out;
+}
+
+.amountInput:focus-within .amountTokenIcon {
+  color: #90f9ff;
+}
+
+.amountInput:hover .amountTokenIcon {
+  color: #90f9ff;
+}
+
+.amountInputInset {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: var(--shadow-inset-subtle);
+}
+
+.amountDivider {
+  position: absolute;
+  left: 55px;
+  top: 19px;
+  width: 1px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: var(--color-dark-800);
+}
+
+.amountValue {
+  position: absolute;
+  left: 72px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(100% - 72px - 108px);
+  font-family: var(--font-ui);
+  font-size: var(--text-display-size);
+  font-weight: 700;
+  line-height: var(--text-display-lh);
+  color: var(--color-mid-400);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+}
+
+.amountValue::placeholder { color: var(--color-mid-400); }
+
+/* Has a value (placeholder hidden) or is focused → mid-50 */
+.amountValue:not(:placeholder-shown),
+.amountValue:focus { color: var(--color-mid-50); }
+
+.amountSelectors {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.amountChip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 var(--space-8);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-outer);
+  overflow: hidden;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  font-family: var(--font-ui);
+  transition: opacity 150ms ease-out;
+}
+
+.amountChip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--grad-surface);
+  pointer-events: none;
+}
+
+.amountChip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--shadow-inset-highlight);
+  pointer-events: none;
+}
+
+/* Hover — same as .periodCardDefault:hover */
+.amountChip:not(.amountChipActive):hover { opacity: 0.75; }
+
+/* Selected state — same as .periodCardActive */
+.amountChipActive { background-color: var(--color-dark-800); }
+
+.amountChipActive::before { background: none; }
+
+.amountChipActive .amountChipText { color: var(--color-teal-200); }
+
+.amountChipText {
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: var(--color-mid-400);
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+/* ============================================================
+   Info tooltip
+   ============================================================ */
+.tooltipAnchor {
+  position: relative;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  /* No overflow: hidden — tooltip must escape the bounds */
+}
+
+.tooltip {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px;
+  border-radius: 12px;
+  background-color: var(--color-dark-700);
+  box-shadow:
+    0 0 2px 0 black,
+    inset 0 -1px 2px 0 rgba(255, 255, 255, 0.07),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--color-mid-50);
+  white-space: pre-line;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+  z-index: 300;
+}
+
+.tooltipAbove {
+  bottom: calc(100% + 8px);
+}
+
+.tooltipBelow {
+  top: calc(100% + 8px);
+}
+
+.tooltipVisible {
+  opacity: 1;
+}
+
+/* ============================================================
+   Section label
+   ============================================================ */
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: 12px;
+}
+
+.sectionLabelText {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: var(--color-mid-400);
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+/* ============================================================
+   Period selector grid
+   ============================================================ */
+.periodGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+  margin-bottom: var(--space-24);
+}
+
+.periodCard {
+  position: relative;
+  height: 48px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-outer);
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-16);
+  background: transparent;
+  border: none;
+  font-family: var(--font-ui);
+  transition: opacity 0.15s ease;
+}
+
+.periodCardDefault::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--grad-surface);
+  pointer-events: none;
+}
+
+.periodCardDefault::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--shadow-inset-highlight);
+  pointer-events: none;
+}
+
+.periodCardDefault:hover { opacity: 0.75; }
+
+.periodCardActive {
+  background-color: var(--color-dark-800);
+}
+
+.periodCardActive::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--shadow-inset-highlight);
+  pointer-events: none;
+}
+
+.periodLabel {
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-lh);
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: lining-nums proportional-nums;
+  white-space: nowrap;
+}
+
+.periodLabelDefault { color: var(--color-mid-400); }
+.periodLabelActive  { color: var(--color-teal-200); }
+
+.periodApy {
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-lh);
+  color: var(--color-mid-50);
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: lining-nums proportional-nums;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Auto-compound row
+   ============================================================ */
+.autoCompoundRow {
+  position: relative;
+  height: 48px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-outer);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-16);
+  margin-bottom: var(--space-24);
+  cursor: pointer;
+  user-select: none;
+}
+
+.autoCompoundRow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--grad-surface);
+  pointer-events: none;
+}
+
+.autoCompoundRow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--shadow-inset-highlight);
+  pointer-events: none;
+}
+
+.autoCompoundLabel {
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-lh);
+  color: var(--color-mid-400);
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+/* Toggle */
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 20px;
+  border-radius: 22px;
+  overflow: hidden;
+  flex-shrink: 0;
+  z-index: 1;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  transition: background-color 0.2s ease;
+}
+
+.toggleOn  { background-color: var(--color-mid-50);   }
+.toggleOff { background-color: var(--color-dark-950); }
+
+.toggleThumb {
+  position: absolute;
+  top: 2px;
+  width: 24px;
+  height: 16px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #4e4e4e 0%, #0d0d0d 50%, #4e4e4e 100%);
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  transition: left 0.2s ease, right 0.2s ease;
+}
+
+.toggleThumbOn  { right: 2px; left: auto; }
+.toggleThumbOff { left: 2px;  right: auto; }
+
+.toggleThumbInner {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  width: 22px;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-dark-800);
+}
+
+/* ============================================================
+   Estimated rewards
+   ============================================================ */
+.estimatedRewards {
+  position: relative;
+  padding: var(--space-16) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: var(--space-24);
+}
+
+.rewardsDividerTop,
+.rewardsDividerBottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-dark-800);
+  pointer-events: none;
+}
+
+.rewardsDividerTop    { top: 0; }
+.rewardsDividerBottom { bottom: 0; }
+
+.rewardsAmount {
+  font-family: var(--font-ui);
+  font-size: var(--text-display-size);
+  font-weight: 700;
+  line-height: var(--text-display-lh);
+  color: var(--color-mid-50);
+  font-variant-numeric: lining-nums tabular-nums;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+/* RollingNumber */
+.rollingNumber {
+  display: inline-flex;
+  align-items: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+
+.rollingSlot {
+  display: inline-block;
+  overflow: hidden;
+  height: 1em;
+  line-height: 1em;
+  flex-shrink: 0;
+}
+
+.rollingTrack {
+  display: flex;
+  flex-direction: column;
+  transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rollingDigit {
+  display: block;
+  height: 1em;
+  line-height: 1em;
+  text-align: center;
+}
+
+.rollingStatic {
+  display: inline-block;
+  line-height: 1em;
+  width: 0.3em;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.rewardsCaption {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: var(--color-mid-400);
+  text-align: center;
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+/* ============================================================
+   Continue button
+   ============================================================ */
+.continueButton {
+  display: flex;
+  width: 100%;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-teal-300);
+  border: none;
+  cursor: pointer;
+  padding: 1px;
+  overflow: hidden;
+  will-change: transform;
+  backface-visibility: hidden;
+  transition: transform 200ms ease, background-color 200ms ease-out, color 200ms ease-out, border-color 200ms ease-out;
+}
+
+.continueButton:active {
+  transform: scale(0.99);
+  transition: transform 120ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .continueButton {
+    transition: none;
+  }
+  .continueButton:active {
+    transform: none;
+    transition: none;
+  }
+  .continueButtonSecondary:active {
+    transform: none;
+    transition: none;
+  }
+  .continueButtonTransparent:active {
+    transform: none;
+    transition: none;
+  }
+  .continueButtonTransparent:active .continueButtonText {
+    opacity: 1;
+    transition: none;
+  }
+}
+
+.continueButtonInner {
+  flex: 1;
+  border-radius: 4000px;
+  background-color: var(--color-teal-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hover: white gradient overlay fades in (transparent→50% white, bottom→top) */
+.continueButtonInner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.5) 100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.continueButton:hover .continueButtonInner::before { opacity: 1; }
+
+/* Default inset shadows: white top-highlight + teal depth */
+.continueButtonInner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0px 1px 1px 0.2px white;
+  pointer-events: none;
+  transition: box-shadow 200ms ease;
+}
+
+/* Active/pressed: dark teal inset shadows */
+.continueButton:active .continueButtonInner::after {
+  box-shadow:
+    inset 0 0 2px 1px rgba(38, 115, 122, 0.5),
+    inset 0 1px 2px 0   rgba(38, 115, 122, 0.7);
+}
+
+.continueButtonText {
+  font-family: var(--font-ui);
+  font-size: var(--text-medium-size);
+  font-weight: 600;
+  line-height: var(--text-medium-lh);
+  color: var(--color-dark-950);
+  font-variant-numeric: lining-nums proportional-nums;
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+/* ---- Disabled state (primary only) ---- */
+.continueButton:disabled {
+  background-color: #5f5d68;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.continueButton:disabled .continueButtonInner {
+  background-color: #7e7c87;
+}
+.continueButton:disabled .continueButtonInner::before { display: none; }
+.continueButton:disabled .continueButtonInner::after  { box-shadow: none; }
+.continueButton:disabled .continueButtonText          { color: #c8c6cf; }
+
+/* ---- Secondary variant ---- */
+/* Usage: className={`${styles.continueButton} ${styles.continueButtonSecondary}`} */
+.continueButtonSecondary {
+  background-color: transparent;
+  /* 1px outer ring matches Figma "Border" box-shadow */
+  box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.35);
+}
+.continueButtonSecondary .continueButtonInner {
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.05) 100%),
+    linear-gradient(90deg, rgb(30, 30, 31) 0%, rgb(30, 30, 31) 100%);
+  transition: background 200ms ease;
+}
+.continueButtonSecondary:hover .continueButtonInner {
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.1) 100%),
+    linear-gradient(90deg, rgb(30, 30, 31) 0%, rgb(30, 30, 31) 100%);
+}
+/* Hide primary's ::before overlay — secondary uses background transition instead */
+.continueButtonSecondary .continueButtonInner::before {
+  display: none;
+}
+/* Inset highlights replace primary's teal inset shadows */
+.continueButtonSecondary .continueButtonInner::after {
+  box-shadow:
+    inset 0px 1px 0.5px 0px rgba(255, 255, 255, 0.1),
+    inset 0px 0px 0px 1px rgba(255, 255, 255, 0.06);
+}
+/* Active: keep same inset shadows (no dark-teal override like primary) */
+.continueButtonSecondary:active .continueButtonInner::after {
+  box-shadow:
+    inset 0px 1px 0.5px 0px rgba(255, 255, 255, 0.1),
+    inset 0px 0px 0px 1px rgba(255, 255, 255, 0.06);
+}
+.continueButtonSecondary .continueButtonText { color: #f5f5f5; }
+.continueButtonSecondary:active {
+  transform: scale(0.99);
+  transition: transform 120ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ---- Transparent variant ---- */
+/* Usage: className={`${styles.continueButton} ${styles.continueButtonTransparent}`} */
+.continueButtonTransparent {
+  background-color: transparent;
+}
+.continueButtonTransparent .continueButtonInner {
+  background: transparent;
+}
+/* No decorative pseudo-elements */
+.continueButtonTransparent .continueButtonInner::before,
+.continueButtonTransparent .continueButtonInner::after { display: none; }
+/* Text changes color on hover (teal-200 per Figma) */
+.continueButtonTransparent .continueButtonText {
+  color: #f5f5f5;
+  transition: color 200ms ease;
+}
+.continueButtonTransparent:hover .continueButtonText { color: var(--color-teal-200); }
+.continueButtonTransparent:active {
+  transform: scale(0.99);
+  transition: transform 120ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.continueButtonTransparent:active .continueButtonText {
+  opacity: 0.7;
+  transition: opacity 100ms ease-out;
+}
+
+/* ============================================================
+   Footer socials
+   ============================================================ */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-32);
+  padding: var(--space-24) 0;
+  margin-top: auto;
+}
+
+.socialLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  text-decoration: none;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  font-family: var(--font-ui);
+  padding: 0;
+  color: var(--color-mid-400);
+  transition: color 150ms ease-out;
+}
+
+.socialLink:hover { color: var(--color-mid-50); }
+
+.socialLabel {
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: currentColor;
+  white-space: nowrap;
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+/* ============================================================
+   Nav clip-path switcher
+   ============================================================ */
+
+/* Sizing / stacking context for both lists */
+.navWrapper {
+  position: relative;
+}
+
+/* Pill top-edge highlight — absolutely positioned sibling of .navOverlay,
+   driven by the same JS as the clip-path so it tracks the active tab exactly.
+   Being a sibling (not a child) of the clipped element means clip-path
+   on .navOverlay does not affect it. */
+.navHighlight {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 9999px;
+  box-shadow: var(--shadow-outer), var(--shadow-inset-highlight);
+  pointer-events: none;
+  z-index: 3;
+  transition: left 0.25s ease, width 0.25s ease;
+}
+
+/* Bottom list — position:relative makes <li> offsetLeft relative to this element */
+.navList {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Top list — the pill indicator IS this element; clip-path reveals the active tab */
+.navOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--grad-surface);
+  overflow: hidden;
+  pointer-events: none;
+  transition: clip-path 0.25s ease;
+  /* Set color on the container so all children inherit it */
+  color: var(--color-mid-50);
+}
+
+.navItemOverlay {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  height: 40px;
+  padding: 0 var(--space-16);
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-lh);
+  background: transparent;
+  border: none;
+  font-variant-numeric: lining-nums proportional-nums;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Overlay color enforcement — MUST remain last in file.
+   Wins over any earlier rule regardless of bundle order.
+   ============================================================ */
+.navOverlay .navItemOverlay,
+.navOverlay .navItemOverlay:hover,
+.navOverlay .navItemOverlay:focus,
+.navOverlay .navItemOverlay:active,
+.navOverlay .navItemOverlay .navLabel,
+.navOverlay .navItemOverlay:hover .navLabel {
+  color: var(--color-mid-50) !important;
+}
+
+/* Active tab in the bottom list — label and icon match overlay color */
+.navItemActive .navLabel,
+.navItemActive .navIcon {
+  color: var(--color-mid-50);
+}
+
+/* ============================================================
+   Wallet modal
+   ============================================================ */
+
+/* Backdrop */
+.wmBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(13, 13, 13, 0.56);
+  backdrop-filter: blur(5px) saturate(1.05);
+  -webkit-backdrop-filter: blur(5px) saturate(1.05);
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity, backdrop-filter;
+  /* Exit: slightly faster than enter */
+  transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.wmBackdropOpen {
+  opacity: 1;
+  pointer-events: all;
+  /* Enter: backdrop lingers a touch longer */
+  transition: opacity 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Panel */
+.wmPanel {
+  position: fixed;
+  right: max(24px, calc((100vw - 1440px) / 2 + 24px));
+  top: 14px;
+  width: 440px;
+  z-index: 201;
+  background: var(--color-dark-900);
+  border-radius: 24px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  opacity: 0;
+  transform: translateY(-12px) scale(0.97);
+  /* Scale from the top-right (toward the wallet button) */
+  transform-origin: top right;
+  pointer-events: none;
+  will-change: transform, opacity;
+  /* Exit: fast and clean */
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.wmPanelOpen {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: all;
+  /* Enter: snappy start, graceful settle */
+  transition: opacity 320ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wmPanel,
+  .wmPanelOpen {
+    transition: opacity 150ms ease;
+    transform: none;
+  }
+  .wmBackdrop,
+  .wmBackdropOpen {
+    transition: opacity 150ms ease;
+  }
+}
+
+/* Header row */
+.wmHeader {
+  position: relative;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+}
+
+.wmTitle {
+  font-family: var(--font-ui);
+  font-size: var(--text-title-size);
+  font-weight: 700;
+  line-height: var(--text-title-lh);
+  color: var(--color-mid-50);
+}
+
+.wmEscHint {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.wmCloseBtn {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-mid-400);
+  transition: color 150ms ease, opacity 100ms ease;
+}
+
+.wmCloseBtn:hover {
+  color: var(--color-mid-50);
+}
+
+.wmCloseBtn:active {
+  opacity: 0.6;
+  transition: color 80ms ease-out, opacity 80ms ease-out;
+}
+
+.umSuccessCloseBtn {
+  top: 20px;
+  right: 24px;
+  transform: none;
+  z-index: 3;
+}
+
+.umSuccessCloseBtn:hover {
+  color: var(--color-mid-50);
+}
+
+.umSuccessCloseBtn:active {
+  opacity: 0.6;
+}
+
+.wmCloseIcon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-image: url("https://www.figma.com/api/mcp/asset/6e19fdbc-d1fc-4bcb-b07f-bacea733c31f");
+  mask-image: url("https://www.figma.com/api/mcp/asset/6e19fdbc-d1fc-4bcb-b07f-bacea733c31f");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* Content wrapper */
+.wmContent {
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Wallet info section ────────────────────────────────────── */
+.wmInfoSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Wallet info row (badge + address + actions) */
+.wmInfoRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-dark-800);
+  background: var(--color-dark-950);
+  overflow: hidden;
+}
+
+/* Phantom badge */
+.wmBadge {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #ab9ff2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+/* Address column */
+.wmAddrCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 0 0;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  line-height: var(--text-small-lh);
+}
+
+.wmAddrName {
+  font-size: var(--text-small-size);
+  color: var(--color-mid-50);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wmAddrLine {
+  font-size: var(--text-caption-size);
+  color: var(--color-mid-400);
+  white-space: nowrap;
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+/* Action buttons */
+.wmActionsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.wmActionBtn {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  flex-shrink: 0;
+  color: var(--color-mid-400);
+  will-change: transform;
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 150ms ease,
+              opacity 150ms ease;
+}
+
+.wmActionBtn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--grad-surface);
+  pointer-events: none;
+}
+
+.wmActionBtn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--shadow-inset-highlight);
+  pointer-events: none;
+}
+
+.wmActionBtn:hover {
+  opacity: 0.75;
+  color: var(--color-mid-50);
+}
+
+.wmActionBtn:hover::before {
+  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 100%),
+              linear-gradient(90deg, var(--color-dark-800) 0%, var(--color-dark-800) 100%);
+}
+
+.wmActionBtn:active {
+  opacity: 1;
+  color: var(--color-mid-50);
+  transform: scale(0.88);
+  transition: transform 80ms ease-out,
+              color 80ms ease-out,
+              opacity 80ms ease-out;
+}
+
+.wmActionBtn:active::before {
+  background: #1A1A1A;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wmActionBtn,
+  .wmActionBtn:active {
+    transition: color 150ms ease, opacity 150ms ease;
+    transform: none;
+  }
+}
+
+/* Balance */
+.wmBalance {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.wmBalanceAmt {
+  font-family: var(--font-ui);
+  font-size: var(--text-display-size);
+  font-weight: 700;
+  line-height: var(--text-display-lh);
+  color: var(--color-mid-50);
+  display: flex;
+  align-items: baseline;
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+
+.wmBalanceUsd {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: var(--color-mid-400);
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+/* Section divider */
+.wmDivider {
+  height: 1px;
+  border-radius: var(--radius-pill);
+  background: var(--color-dark-950);
+  box-shadow: inset 0 -0.1px 0 0 rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+/* Shared section label */
+.wmSectionLabel {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: var(--color-mid-400);
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+/* ── Priority fee ────────────────────────────────────────────── */
+.wmFeeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Outer container — TabSwitcher fills this with the same clip-path animation */
+.wmFeeCtrl {
+  height: 32px;
+  padding: 2px;
+  border-radius: 9999px;
+  background: var(--color-dark-950);
+  box-shadow: var(--shadow-outer);
+  overflow: hidden;
+}
+
+/* ── Slippage ─────────────────────────────────────────────────── */
+.wmSlipSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* periodCard buttons sit inside this flex row */
+.wmSlipGrid {
+  display: flex;
+  gap: var(--space-8);
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  right: max(24px, calc((100vw - 1440px) / 2 + 24px));
+  transform: translateY(16px);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  height: 39px;
+  border-radius: 12px;
+  background: var(--color-dark-800);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+  /* Exit: quick and clean */
+  transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toastVisible {
+  opacity: 1;
+  transform: translateY(0);
+  /* Enter: snappy start, graceful settle */
+  transition: opacity 320ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toastIcon {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.toastText {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: var(--color-mid-50);
+  white-space: nowrap;
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toastVisible {
+    transition: opacity 150ms ease;
+    transform: none;
+  }
+}
+
+/* ============================================================
+   Time Simulator
+   ============================================================ */
+
+.timeSim {
+  position: fixed;
+  bottom: 0;
+  left: 24px;
+  width: 272px;
+  background: #141414;
+  border: 1px solid var(--color-dark-800);
+  border-radius: 16px 16px 0 0;
+  z-index: 1000;
+  font-family: var(--font-ui);
+  overflow: hidden;
+  transition: height 200ms cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+/* Header row — full-width 48px clickable toggle zone */
+.timeSimHeaderRow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  cursor: pointer;
+  z-index: 1;
+}
+
+/* Inset highlight — painted on top of everything, pointer-events: none */
+.timeSimInset {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0px 1px 0px 0px rgba(255,255,255,0.1),
+    inset 0px 0px 0px 1px rgba(255,255,255,0.06);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Title — inline within header row */
+.timeSimTitle {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 16px;
+  color: #a5a3ac;
+  white-space: nowrap;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+/* Arrow icon rotated when expanded */
+.timeSimArrowUp {
+  display: block;
+  transform: rotate(180deg);
+}
+
+/* Thin horizontal divider */
+.timeSimDivider {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: var(--color-dark-800);
+  border-radius: 400px;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+/* Date row — outer absolute container at top: 59px */
+.timeSimDateRow {
+  position: absolute;
+  top: 59px;
+  left: 16px;
+  right: 16px;
+  height: 16px;
+}
+
+/* Inner row shifted down 1px */
+.timeSimDateRowInner {
+  position: relative;
+  top: 1px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timeSimDateLabel {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: #a5a3ac;
+  white-space: nowrap;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.timeSimDateValue {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: #fafafa;
+  white-space: nowrap;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+/* Skip buttons row — absolute at top: 102px */
+.timeSimSkipGrid {
+  position: absolute;
+  top: 102px;
+  left: 16px;
+  right: 16px;
+  height: 44px;
+  display: flex;
+  gap: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeSim {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   Unstake modal
+   ============================================================ */
+
+.umPanel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 440px;
+  z-index: 201;
+  background: var(--color-dark-900);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translateX(-50%) translateY(calc(-50% - 8px)) scale(0.97);
+  transform-origin: top center;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.umPanelOpen {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-50%) scale(1);
+  pointer-events: all;
+  transition: opacity 320ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .umPanel,
+  .umPanelOpen {
+    transition: opacity 150ms ease;
+    transform: translateX(-50%) translateY(-50%);
+  }
+}
+
+.umPanel .wmHeader {
+  height: 48px;
+  background: #1A1A1A;
+  margin-bottom: 12px;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+}
+
+.umPanelInset {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+  z-index: 2;
+}
+
+
+.umPanel .wmTitle {
+  font-size: var(--text-medium-size);
+  line-height: var(--text-medium-lh);
+}
+
+.umContent {
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.umReceiveSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 12px;
+}
+
+.umSubLabel {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-mid-400);
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.umAmount {
+  font-family: var(--font-ui);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 32px;
+  color: #fafafa;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.umDivider {
+  height: 1px;
+  flex-shrink: 0;
+  background: repeating-linear-gradient(90deg, #2e2d35 0px, #2e2d35 2px, transparent 2px, transparent 4px);
+}
+
+.umRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.umRowLabel {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-mid-400);
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.umRowValue {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: #fafafa;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.umInfoBlock {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(171, 159, 242, 0.1);
+  box-shadow:
+    0px 0px 0px 1px rgba(0, 0, 0, 0.35),
+    inset 0px 1px 0px 0px rgba(255, 255, 255, 0.1),
+    inset 0px 0px 0px 1px rgba(255, 255, 255, 0.06);
+}
+
+.umInfoText {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: #ab9ff2;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+  flex: 1;
+}
+
+.umBottomText {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-mid-400);
+  text-align: center;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+/* ── Unstake batch modal: scrollable stakes list ── */
+
+.umStakesList {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 1;
+  min-height: 0;
+}
+
+/* ── Unstake modal: phase screens ───────────────────────────────────────── */
+
+@keyframes umFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .umScreen { animation: none; }
+}
+
+.umScreen {
+  position: relative;
+  z-index: 1;
+  animation: umFadeIn 200ms cubic-bezier(0.215, 0.61, 0.355, 1) both;
+}
+
+.umCenteredContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  min-height: 305px;
+  padding: 0 24px 24px;
+  position: relative;
+}
+
+.umTextBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  width: 100%;
+}
+
+.umSubtitle {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--color-mid-400);
+  text-align: center;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.umBatchProgressScreen {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.umBatchProgressTextBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.umBatchProgressBlock {
+  margin-top: 24px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--color-dark-950);
+}
+
+.umBatchStakeMoreBtn {
+  margin-top: 16px;
+  width: 100%;
+  height: 44px;
+}
+
+.umBatchStakeMoreBtn .continueButtonInner {
+  justify-content: center;
+}
+
+.umBatchProgressInner {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--color-dark-900);
+}
+
+.umBatchStep {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 86px;
+}
+
+.umBatchStep:last-child {
+  min-height: auto;
+}
+
+.umBatchStepRail {
+  width: 34px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.umBatchStatusIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #5F5D68;
+  background: transparent;
+  will-change: border-color, transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  transition:
+    border-color 240ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    box-shadow 240ms cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.umBatchStatusIcon::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: #0F9863;
+  opacity: 1;
+  transform: scale(0);
+  transform-origin: center;
+  will-change: transform;
+  backface-visibility: hidden;
+  transition:
+    transform 440ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.umBatchStatusIconWaiting {
+  border-color: #5F5D68;
+}
+
+.umBatchStatusIconActive {
+  border: 1px dashed #0F9863;
+  animation: umBatchDashedSpin 3.2s linear infinite;
+}
+
+.umBatchStatusIconSuccess {
+  border-color: transparent;
+}
+
+.umBatchStatusIconSuccess::before {
+  transform: scale(1);
+}
+
+.umBatchStatusCheck {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%) scale(0.8);
+  opacity: 0;
+  filter: blur(4px);
+  will-change: transform, opacity, filter;
+  transition:
+    opacity 180ms ease-out 90ms,
+    transform 280ms cubic-bezier(0.19, 1, 0.22, 1) 90ms,
+    filter 220ms ease-out 90ms;
+  pointer-events: none;
+}
+
+.umBatchStatusIconSuccess .umBatchStatusCheck {
+  opacity: 1;
+  filter: blur(0);
+  transform: translate(-50%, -50%) scale(1);
+}
+
+@keyframes umBatchDashedSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.umBatchStepConnector {
+  position: relative;
+  width: 1px;
+  height: 28px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: #5F5D68;
+}
+
+.umBatchStepConnectorDone {
+  background: #5F5D68;
+}
+
+.umBatchStepConnectorWaiting {
+  background: #5F5D68;
+}
+
+.umBatchStepConnector::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #0F9863;
+  transform: scaleY(0);
+  transform-origin: top;
+  will-change: transform;
+  transition: transform 520ms cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.umBatchStepConnectorDone::after {
+  transform: scaleY(1);
+}
+
+.umBatchStepContent {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.umBatchStepHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.umBatchStepMeta {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  color: var(--color-mid-400);
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.umBatchStepStatus {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: var(--text-caption-lh);
+  white-space: nowrap;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.umBatchStepStatusSuccess {
+  color: #0F9863;
+}
+
+.umBatchStepStatusActive {
+  color: var(--color-mid-50);
+}
+
+.umBatchStepStatusWaiting {
+  color: var(--color-mid-400);
+}
+
+.umBatchStepAmount {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-mid-50);
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.umBatchStepDivider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 59px;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, var(--color-dark-800) 0px, var(--color-dark-800) 2px, transparent 2px, transparent 4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .umBatchStatusIcon,
+  .umBatchStepConnector::after {
+    transition: none;
+  }
+
+  .umBatchStatusIconActive {
+    animation: none;
+  }
+
+  .umBatchStatusCheck {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* ============================================================
+   Portfolio page
+   ============================================================ */
+
+.portfolioContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding-bottom: 0;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.portfolioStatsRow {
+  display: flex;
+  gap: 16px;
+  width: 980px;
+}
+
+.portfolioStatCard {
+  position: relative;
+  width: 482px;
+  height: 234px;
+  border-radius: 24px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--color-dark-900);
+  box-shadow: inset 0 0 1px 0 rgba(255, 255, 255, 0.24);
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+}
+
+.portfolioCardTitle {
+  position: absolute;
+  left: 24px;
+  top: 24px;
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-mid-400);
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.portfolioCardTotal {
+  position: absolute;
+  left: 24px;
+  top: 46px;
+  font-family: var(--font-ui);
+  font-size: var(--text-title-size);
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--color-mid-50);
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.portfolioCardDivider {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  border-radius: 400px;
+  background: var(--color-dark-800);
+  box-shadow: none;
+}
+
+.portfolioCardRow {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  height: 40px;
+}
+
+.portfolioCardIconBox {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-dark-800);
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portfolioCardRowLabel {
+  position: absolute;
+  left: 52px;
+  top: 2px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-mid-400);
+  white-space: nowrap;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.portfolioCardRowValue {
+  position: absolute;
+  left: 52px;
+  top: 22px;
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-mid-50);
+  white-space: nowrap;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.portfolioCardBtn {
+  margin-top: auto;
+  align-self: flex-end;
+  height: 32px;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  padding: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: none;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  will-change: transform;
+  backface-visibility: hidden;
+  transition: transform 200ms ease, background-color 200ms ease-out;
+}
+
+.portfolioCardBtn:disabled { cursor: default; opacity: 0.5; }
+
+.portfolioCardBtnInner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  border-radius: 9999px;
+  padding: 7px 16px;
+  position: relative;
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.05) 100%),
+    linear-gradient(90deg, rgb(30, 30, 31) 0%, rgb(30, 30, 31) 100%);
+  box-shadow:
+    inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition: background 200ms ease;
+}
+
+.portfolioCardBtn:hover:not(:disabled) .portfolioCardBtnInner {
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.1) 100%),
+    linear-gradient(90deg, rgb(30, 30, 31) 0%, rgb(30, 30, 31) 100%);
+}
+
+.portfolioCardBtn:active:not(:disabled) {
+  transform: scale(0.99);
+  transition: transform 120ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portfolioCardBtn {
+    transition: none;
+  }
+  .portfolioCardBtn:active:not(:disabled) {
+    transform: none;
+    transition: none;
+  }
+}
+
+.portfolioCardBtnText {
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-mid-50);
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.portfolioFilterRow {
+  width: 980px;
+  display: flex;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.portfolioTable {
+  width: 980px;
+  border-radius: 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  isolation: isolate;
+  background: var(--color-dark-900);
+  flex: 1;
+  min-height: 0;
+}
+
+.portfolioTable::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 1px 0 rgba(255, 255, 255, 0.24);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.portfolioTHead {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 40px;
+  background: var(--color-dark-800);
+  box-shadow:
+    inset 0 -1px 0 0 rgba(255, 255, 255, 0.05),
+    inset 0  1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+.portfolioTh {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-mid-400);
+  white-space: nowrap;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.portfolioTRow {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 80px;
+  position: relative;
+  background: var(--color-dark-900);
+  box-shadow: inset 0 -1px 0 0 var(--color-dark-800);
+}
+
+.portfolioTRow::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--color-dark-800);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+
+.ptColPosition {
+  flex-shrink: 0;
+  width: 156px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  overflow: hidden;
+}
+
+.ptColStaked {
+  flex: none;
+  flex-shrink: 0;
+  width: 201px;
+  min-width: 0;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.ptColApy {
+  flex-shrink: 0;
+  width: 96px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.ptColCompound {
+  flex-shrink: 0;
+  width: 112px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.ptColEarned {
+  flex: none;
+  flex-shrink: 0;
+  width: 201px;
+  min-width: 0;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.ptColActions {
+  flex-shrink: 0;
+  width: 214px;
+  padding: 0 24px 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  align-self: stretch;
+}
+
+/* Unstaked table columns */
+.ptColPositionUnstaked {
+  flex-shrink: 0;
+  width: 294px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  overflow: hidden;
+}
+
+.ptColStakedUnstaked {
+  flex-shrink: 0;
+  width: 294px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.ptColApyUnstaked {
+  flex-shrink: 0;
+  width: 96px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.ptColEarnedUnstaked {
+  flex-shrink: 0;
+  width: 294px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.ptCellPrimary {
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-mid-50);
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.ptCellSecondary {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-mid-400);
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.ptUnlocked { color: #ab9ff2; }
+
+.ptBtn {
+  flex-shrink: 0;
+  height: 32px;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  padding: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  will-change: transform;
+  backface-visibility: hidden;
+  transition: transform 200ms ease, background-color 200ms ease-out;
+}
+
+.ptBtn:disabled { cursor: default; }
+
+.ptBtnInner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  border-radius: 9999px;
+  padding: 7px 16px;
+  position: relative;
+  min-height: 1px;
+  min-width: 1px;
+}
+
+.ptBtnText {
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  font-feature-settings: 'lnum' 1, 'pnum' 1;
+}
+
+.ptHarvestBtn {
+  width: 84px;
+  background: none;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.ptHarvestBtn .ptBtnInner {
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.05) 100%),
+    linear-gradient(90deg, rgb(30, 30, 31) 0%, rgb(30, 30, 31) 100%);
+  box-shadow:
+    inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition: background 200ms ease;
+}
+
+.ptHarvestBtn:hover .ptBtnInner {
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.1) 100%),
+    linear-gradient(90deg, rgb(30, 30, 31) 0%, rgb(30, 30, 31) 100%);
+}
+
+.ptHarvestBtn:active {
+  transform: scale(0.99);
+  transition: transform 120ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.ptHarvestBtn .ptBtnText { color: var(--color-mid-50); }
+
+.ptUnstakeActiveBtn {
+  width: 86px;
+  background: var(--color-teal-300, #6dbec2);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.ptUnstakeActiveBtn .ptBtnInner {
+  background: var(--color-teal-200, #90f9ff);
+  position: relative;
+  box-shadow:
+    inset 0px 1px 1px 0.2px white;
+}
+
+.ptUnstakeActiveBtn:hover .ptBtnInner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.5) 100%);
+  pointer-events: none;
+}
+
+.ptUnstakeActiveBtn:active {
+  transform: scale(0.99);
+  transition: transform 120ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.ptUnstakeActiveBtn:active .ptBtnInner {
+  box-shadow:
+    inset 0 0 2px 1px rgba(38, 115, 122, 0.5),
+    inset 0 1px 2px 0   rgba(38, 115, 122, 0.7);
+}
+
+.ptUnstakeActiveBtn .ptBtnText { color: var(--color-dark-950); }
+
+.ptUnstakeLockedBtn {
+  width: 86px;
+  background: none;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  cursor: default;
+}
+
+.ptUnstakeLockedBtn .ptBtnInner {
+  background: #7E7C87;
+  box-shadow: none;
+}
+
+.ptUnstakeLockedBtn .ptBtnText { color: #C8C6CF; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ptBtn {
+    transition: none;
+  }
+  .ptUnstakeActiveBtn:active,
+  .ptHarvestBtn:active {
+    transform: none;
+    transition: none;
+  }
+}
+
+.portfolioEmpty {
+  width: 980px;
+  border-radius: 24px;
+  background: var(--color-dark-900);
+  box-shadow: inset 0 0 1px 0 rgba(255, 255, 255, 0.24);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 64px 0;
+}
+
+.portfolioEmptyIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.05) 100%),
+    linear-gradient(90deg, var(--color-dark-800) 0%, var(--color-dark-800) 100%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portfolioEmptyTitle {
+  font-family: var(--font-ui);
+  font-size: var(--text-title-size);
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--color-mid-50);
+  text-align: center;
+}
+
+.portfolioEmptySubtitle {
+  font-family: var(--font-ui);
+  font-size: var(--text-small-size);
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--color-mid-400);
+  text-align: center;
+}
+
+/* ============================================================
+   Experiment — remove non-button shadows
+   ============================================================ */
+.modeSwitchHighlight,
+.card,
+.positionIconBox,
+.s2RowIconBox,
+.s2Divider,
+.s2InfoBlock,
+.amountInput,
+.amountInputInset,
+.amountDivider,
+.tooltip,
+.autoCompoundRow,
+.navHighlight,
+.wmPanel,
+.wmBadge,
+.wmDivider,
+.wmFeeCtrl,
+.toast,
+.timeSim,
+.timeSimInset,
+.umPanel,
+.umPanelInset,
+.umInfoBlock,
+.portfolioStatCard,
+.portfolioCardDivider,
+.portfolioCardIconBox,
+.portfolioEmpty,
+.portfolioEmptyIcon,
+.portfolioTable::after,
+.portfolioTHead,
+.portfolioTRow::after {
+  box-shadow: none !important;
+}
+
+.modeSwitchHighlight,
+.navHighlight,
+.timeSimInset,
+.amountInputInset,
+.umPanelInset {
+  display: none !important;
+}
+
+.autoCompoundRow::before,
+.autoCompoundRow::after,
+.portfolioTable::after,
+.portfolioTRow::after {
+  display: none !important;
+}
+
+.periodCard,
+.amountChip,
+.s2Divider,
+.wmDivider,
+.portfolioCardDivider,
+.timeSimDivider {
+  box-shadow: none !important;
+}
+
+.periodCardDefault::before,
+.periodCardDefault::after,
+.periodCardActive::after,
+.amountChip::before,
+.amountChip::after {
+  display: none !important;
+}
+
+/* ============================================================
+   Experiment — flat control surfaces
+   ============================================================ */
+.modeSwitchOverlay {
+  display: flex !important;
+  background: var(--color-dark-800) !important;
+}
+
+.modeSwitchHighlight {
+  display: none !important;
+}
+
+.modeSwitchItem {
+  height: 28px;
+  padding: 0 var(--space-12);
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--color-mid-400);
+}
+
+.modeSwitchItem:hover {
+  color: var(--color-mid-50);
+}
+
+.modeSwitchItemActive {
+  color: var(--color-mid-50);
+}
+
+.periodCard,
+.amountChip,
+.autoCompoundRow {
+  border: 1px solid var(--color-dark-700) !important;
+  background: var(--color-dark-800) !important;
+}
+
+.periodCardDefault:hover,
+.amountChip:not(.amountChipActive):hover,
+.autoCompoundRow:hover {
+  background: var(--color-dark-700) !important;
+  opacity: 1 !important;
+}
+
+.periodCardActive,
+.amountChipActive {
+  border-color: #2F4142 !important;
+  background: #233031 !important;
+}
+
+.walletButton {
+  background: var(--color-dark-800) !important;
+  box-shadow: none !important;
+}
+
+.walletButton::before,
+.walletButton::after {
+  display: none !important;
+}
+
+.walletButton:hover {
+  background: var(--color-dark-700) !important;
+  opacity: 1 !important;
+}
+
+.wmPanel,
+.umPanel {
+  border: 1px solid var(--color-dark-800) !important;
+}
+
+.navOverlay {
+  background: var(--color-dark-800) !important;
+}
+
+.navHighlight {
+  display: none !important;
+}
+
+.autoCompoundRow:hover {
+  background: var(--color-dark-800) !important;
+}
+
+.card {
+  border: 1px solid var(--color-dark-800) !important;
+}
+
+.continueButton:active .continueButtonInner::after,
+.continueButtonSecondary:active .continueButtonInner::after {
+  box-shadow: none !important;
+}
+
+.wmActionBtn {
+  background: var(--color-dark-800) !important;
+  box-shadow: none !important;
+}
+
+.wmActionBtn::before,
+.wmActionBtn::after {
+  display: none !important;
+}
+
+.wmActionBtn:hover {
+  background: var(--color-dark-700) !important;
+  opacity: 1 !important;
+}
+
+.wmDivider {
+  background: var(--color-dark-800) !important;
+  box-shadow: none !important;
+}
+
+.continueButtonSecondary {
+  background: var(--color-dark-800) !important;
+  box-shadow: none !important;
+}
+
+.continueButtonSecondary .continueButtonInner {
+  background: var(--color-dark-800) !important;
+  box-shadow: none !important;
+}
+
+.continueButtonSecondary .continueButtonInner::before,
+.continueButtonSecondary .continueButtonInner::after {
+  display: none !important;
+}
+
+.continueButtonSecondary:hover .continueButtonInner {
+  background: var(--color-dark-700) !important;
+}
+
+.positionHarvestBtn,
+.portfolioCardBtn,
+.ptHarvestBtn {
+  background: var(--color-dark-800) !important;
+  box-shadow: none !important;
+}
+
+.positionHarvestBtn .positionUnstakeBtnInner,
+.portfolioCardBtnInner,
+.ptHarvestBtn .ptBtnInner {
+  background: var(--color-dark-800) !important;
+  box-shadow: none !important;
+}
+
+.positionHarvestBtn:hover .positionUnstakeBtnInner,
+.portfolioCardBtn:hover:not(:disabled) .portfolioCardBtnInner,
+.ptHarvestBtn:hover .ptBtnInner {
+  background: var(--color-dark-700) !important;
+}
