@@ -15,8 +15,6 @@ import type { FlowStatus } from "@/lib/bridge/reducer";
 import type { ChainId, TokenSymbol } from "@/lib/bridge/types";
 import { useBridgeFlow } from "@/lib/use-bridge-flow";
 
-// ─── Presentation maps ────────────────────────────────────────────────────────
-
 const ACTION_LABEL: Record<FlowStatus, string> = {
   idle:            "Select a route to start",
   editing:         "Get quote",
@@ -29,8 +27,6 @@ const ACTION_LABEL: Record<FlowStatus, string> = {
   error:           "Try again",
 };
 
-// Statuses where the form fields should be locked.
-// quote-ready is intentionally excluded — changing the form returns to editing.
 const FORM_LOCKED = new Set<FlowStatus>([
   "validating",
   "loading-quote",
@@ -39,14 +35,11 @@ const FORM_LOCKED = new Set<FlowStatus>([
   "success",
 ]);
 
-// Statuses where the primary action is in-progress (button disabled).
 const ACTION_IN_PROGRESS = new Set<FlowStatus>([
   "validating",
   "loading-quote",
   "pending",
 ]);
-
-// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Page() {
   const bridge = useBridgeFlow();
@@ -62,10 +55,8 @@ export default function Page() {
   return (
     <main className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-sm space-y-5 p-6">
-
         <h1 className="text-lg font-semibold tracking-tight">Bridge</h1>
 
-        {/* Step 1 — From */}
         <div className="space-y-1.5">
           <Label htmlFor="from">From</Label>
           <Select
@@ -86,7 +77,6 @@ export default function Page() {
           </Select>
         </div>
 
-        {/* Step 2 — To: disabled until From is chosen */}
         <div className="space-y-1.5">
           <Label htmlFor="to">To</Label>
           <Select
@@ -107,7 +97,6 @@ export default function Page() {
           </Select>
         </div>
 
-        {/* Step 3 — Token: disabled until a valid route with balance exists */}
         <div className="space-y-1.5">
           <Label htmlFor="token">Token</Label>
           <Select
@@ -128,7 +117,6 @@ export default function Page() {
           </Select>
         </div>
 
-        {/* Step 4 — Amount: disabled until token is chosen */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="amount">Amount</Label>
@@ -163,7 +151,6 @@ export default function Page() {
           )}
         </div>
 
-        {/* Quote summary */}
         {state.quote && (
           <div className="text-muted-foreground space-y-1 rounded-md border p-3 text-sm">
             <div className="flex justify-between">
@@ -183,19 +170,16 @@ export default function Page() {
           </div>
         )}
 
-        {/* Error */}
         {state.status === "error" && state.error && (
           <p className="text-destructive text-sm">{state.error}</p>
         )}
 
-        {/* Success */}
         {state.status === "success" && state.txHash && (
           <p className="text-sm text-green-600">
             Bridged — <span className="font-mono text-xs">{state.txHash}</span>
           </p>
         )}
 
-        {/* Dynamic CTA */}
         <Button
           className="w-full"
           disabled={isButtonDisabled}
@@ -204,11 +188,9 @@ export default function Page() {
           {ACTION_LABEL[state.status]}
         </Button>
 
-        {/* Status indicator */}
         <p className="text-muted-foreground text-center text-xs">
           status: <span className="font-mono">{state.status}</span>
         </p>
-
       </div>
     </main>
   );

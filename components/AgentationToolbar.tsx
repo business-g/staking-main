@@ -17,6 +17,7 @@ export default function AgentationToolbar() {
     );
   }, []);
 
+  if (true) return null;
   if (process.env.NODE_ENV !== "development" || !isLocalHost) return null;
 
   return <Agentation endpoint={AGENTATION_ENDPOINT} />;

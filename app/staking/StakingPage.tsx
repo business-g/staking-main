@@ -2,6 +2,7 @@
 
 import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import Lottie from "lottie-react";
+import { Liveline, type LivelinePoint } from "liveline";
 import loaderAnimation from "../../public/loader-staking.json";
 import styles from "./StakingPage.module.css";
 
@@ -9,7 +10,7 @@ import styles from "./StakingPage.module.css";
 // Fresh asset URLs (re-fetched 2026-04-04, valid 7 days)
 // ---------------------------------------------------------------------------
 const ASSETS = {
-  logoShape:      "https://www.figma.com/api/mcp/asset/e7f26fd3-4a77-4abf-8d31-d3df62de971f",
+  logoShape:      "/staking/input-gem.svg",
   stakeDefault:   "/staking/nav-stake-default.svg",
   stakeActive:    "/staking/nav-stake-active.svg",
   portfolioDefault: "/staking/nav-portfolio-default.svg",
@@ -17,8 +18,8 @@ const ASSETS = {
   walletIcon:     "https://www.figma.com/api/mcp/asset/9dd30486-3fdc-4cb6-b8b9-b0bc1d1573f6",
   phantomBase:    "/staking/phantom-base.svg",
   phantomVector:  "/staking/phantom-vector.svg",
-  infoIcon:       "https://www.figma.com/api/mcp/asset/2a6b2d1b-a352-4d19-b2d8-1303847b250d",
-  tokenImg:       "https://www.figma.com/api/mcp/asset/41dc0903-053e-46de-bcc1-ac73131a4888",
+  infoIcon:       "/staking/info-icon.svg",
+  tokenImg:       "/staking/input-gem.svg",
   discordIcon:    "https://www.figma.com/api/mcp/asset/504a6b5f-54ed-4bc7-a24c-fc16a878c28a",
   twitterIcon:    "https://www.figma.com/api/mcp/asset/59792a15-ff02-4a5c-be81-e039d6c059f8",
   telegramIcon:   "https://www.figma.com/api/mcp/asset/21c88536-e979-4a8a-904a-5e6b31afe6e0",
@@ -46,7 +47,7 @@ const ASSETS = {
   // Unstake screen coin images (fetched 2026-03-31)
   unstakeCoinLeft:  "https://www.figma.com/api/mcp/asset/405096ec-eb4f-4492-ba47-3b53c8ca0662",
   unstakeCoinRight: "https://www.figma.com/api/mcp/asset/a40056cb-0487-4fa0-9e72-50581ceb474f",
-  unstakeBlankStatus: "/staking/unstake-blank-status.png",
+  unstakeBlankStatus: "/staking/unstake-blank-status-v2.png",
   // Position card assets (fetched 2026-04-01 from node 7250-2076)
   positionDivider:   "https://www.figma.com/api/mcp/asset/c9672436-daa3-4700-aa0c-d8531cb946a2",
   positionClockIcon: "https://www.figma.com/api/mcp/asset/670043ce-c425-4ab1-aab1-277a5b1737b7",
@@ -104,8 +105,10 @@ function PhantomIcon() {
 function SuccessStateIcon() {
   return (
     <div className={styles.s4Icon}>
-      <img src={ASSETS.s4EllipseIcon} alt="" loading="eager" decoding="sync" fetchPriority="high" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }} />
-      <img src={ASSETS.s4CheckIcon} alt="" width={27} height={23} loading="eager" decoding="sync" fetchPriority="high" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", display: "block" }} />
+      <svg width="88" height="88" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block", width: "100%", height: "100%" }}>
+        <circle cx="44" cy="44" r="44" fill="#90F9FF" />
+        <path d="M23.4993 0.677918C24.2293 -0.150844 25.4937 -0.230811 26.3225 0.499207C27.1513 1.22929 27.2312 2.4936 26.5012 3.32245L9.76684 22.3224C9.38716 22.7534 8.84025 23.0002 8.26587 23.0002C7.69148 23.0002 7.14456 22.7534 6.76489 22.3224L0.499264 15.2082C-0.230781 14.3793 -0.150922 13.115 0.677975 12.3849C1.50688 11.6549 2.77115 11.7357 3.50122 12.5646L8.26489 17.9728L23.4993 0.677918Z" fill="#0D0D0D" transform="translate(30 32)" />
+      </svg>
     </div>
   );
 }
@@ -310,6 +313,11 @@ function fmtRewardGra(n: number): string {
   return fmtGra(n, 6);
 }
 
+function fmtAccumulatedRewardGra(n: number): string {
+  if (Math.abs(n) >= 10) return fmtGra(n, 4);
+  return fmtGra(n, 6);
+}
+
 /** Format ISO date as DD.MM.YYYY */
 function formatTableDate(isoDate: string): string {
   const d = new Date(isoDate);
@@ -359,6 +367,98 @@ function computeAccumulatedValue(stake: StakeRecord, now: Date = new Date()): nu
     .at(-1)!;
   const days = (effectiveNow.getTime() - new Date(base).getTime()) / 86400000;
   return Math.max(0, stake.amount * stake.apy * (days / 365));
+}
+
+function buildAccumulatedRewardsChartData(stakes: StakeRecord[], valueNow: Date, axisNow: Date, windowSecs = 90): LivelinePoint[] {
+  const harvestableStakes = stakes.filter((stake) => !stake.autoCompound);
+  const axisNowTs = Math.floor(axisNow.getTime() / 1000);
+
+  if (harvestableStakes.length === 0) {
+    return Array.from({ length: windowSecs + 1 }, (_, index) => ({
+      time: axisNowTs - windowSecs + index,
+      value: 0.0001,
+    }));
+  }
+
+  const points = Array.from({ length: windowSecs + 1 }, (_, index) => {
+    const time = axisNowTs - windowSecs + index;
+    const pointDate = new Date(valueNow.getTime() - (windowSecs - index) * 1000);
+    const value = harvestableStakes.reduce((sum, stake) => sum + computeAccumulatedValue(stake, pointDate), 0);
+    return { time, value };
+  });
+
+  const hasMovement = points.some((point) => point.value > 0);
+  if (hasMovement) return points;
+
+  return points.map((point) => ({ ...point, value: 0.0001 }));
+}
+
+const ACCUMULATED_REWARDS_CHART_PRESETS = {
+  current: {
+    grid: true,
+    badge: true,
+    badgeTail: true,
+    fill: true,
+    pulse: true,
+    momentum: true,
+    lineWidth: 2,
+    padding: { top: 12, right: 88, bottom: 26, left: 12 },
+  },
+  justLine: {
+    grid: false,
+    badge: false,
+    badgeTail: false,
+    fill: false,
+    pulse: false,
+    momentum: false,
+    lineWidth: 2,
+    padding: { top: 12, right: 12, bottom: 20, left: 12 },
+  },
+} as const;
+
+const ACTIVE_ACCUMULATED_REWARDS_CHART_PRESET: keyof typeof ACCUMULATED_REWARDS_CHART_PRESETS = "justLine";
+const MAX_STAKE_INPUT = 99_999_999;
+
+function AccumulatedRewardsLiveline({ data, value, timeOffsetSecs = 0, windowSecs = 90 }: {
+  data: LivelinePoint[];
+  value: number;
+  timeOffsetSecs?: number;
+  windowSecs?: number;
+}) {
+  const chartData = data.length >= 2 ? data : [
+    { time: Math.floor(Date.now() / 1000) - windowSecs, value: 0.0001 },
+    { time: Math.floor(Date.now() / 1000), value: 0.0001 },
+  ];
+  const chartValue = Math.max(value, 0.0001);
+  const preset = ACCUMULATED_REWARDS_CHART_PRESETS[ACTIVE_ACCUMULATED_REWARDS_CHART_PRESET];
+
+  return (
+    <Liveline
+      data={chartData}
+      value={chartValue}
+      theme="dark"
+      color="#90F9FF"
+      window={windowSecs}
+      grid={preset.grid}
+      badge={preset.badge}
+      badgeTail={preset.badgeTail}
+      fill={preset.fill}
+      scrub={false}
+      pulse={preset.pulse}
+      momentum={preset.momentum}
+      emptyText="No rewards yet"
+      formatValue={(v) => `${fmtAccumulatedRewardGra(v)} GRA`}
+      formatTime={(t) => {
+        const date = new Date((t + timeOffsetSecs) * 1000);
+        const mins = `${date.getMinutes()}`.padStart(2, "0");
+        const secs = `${date.getSeconds()}`.padStart(2, "0");
+        return `${mins}:${secs}`;
+      }}
+      lerpSpeed={0.12}
+      lineWidth={preset.lineWidth}
+      padding={preset.padding}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -487,7 +587,7 @@ function Header({ activeNav, onNavChange, onWalletClick, isConnected }: {
       <div className={styles.headerInner}>
         {/* Logo */}
         <a href="/" className={styles.logo}>
-          <img src={ASSETS.logoShape} alt="Gemra logo mark" width={20} height={24} style={{ display: "block" }} />
+          <img src={ASSETS.logoShape} alt="Gemra logo mark" width={24} height={28} style={{ display: "block" }} />
           <span className={styles.logoText}>Gemra</span>
         </a>
 
@@ -656,14 +756,16 @@ function ModeSwitch({ mode, onModeChange }: {
 // Amount input
 // ---------------------------------------------------------------------------
 
-function AmountInput({ value, onChange, onHalf, onMax, activeChip, isError }: {
+function AmountInput({ value, onChange, onHalf, onMax, activeChip, errorMessage }: {
   value: string;
   onChange: (v: string) => void;
   onHalf: () => void;
   onMax: () => void;
   activeChip: "half" | "max" | null;
-  isError: boolean;
+  errorMessage: string | null;
 }) {
+  const isError = !!errorMessage;
+
   return (
     <div className={styles.amountInputWrapper}>
     <div className={`${styles.amountInput} ${isError ? styles.amountInputError : ""}`}>
@@ -696,8 +798,8 @@ function AmountInput({ value, onChange, onHalf, onMax, activeChip, isError }: {
       </div>
       <div className={styles.amountInputInset} />
     </div>
-    {isError && (
-      <span className={styles.amountErrorText}>Insufficient balance</span>
+    {errorMessage && (
+      <span className={styles.amountErrorText}>{errorMessage}</span>
     )}
     </div>
   );
@@ -743,17 +845,24 @@ function PeriodGrid({ selected, onSelect }: {
 // ---------------------------------------------------------------------------
 
 function AutoCompoundRow({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  const helperText = on
+    ? "Higher total rewards: earnings are re-staked every 24h."
+    : "Rewards stay separate and remain claimable.";
+
   return (
     <div>
       <div className={styles.sectionLabel}>
         <span className={styles.sectionLabelText}>Reward settings</span>
         <InfoTooltip
           width={354}
-          text="When «Auto-compound» enabled, your rewards are automatically added to your staked balance every 24 hours — increasing the base for the next reward. When disabled, rewards accumulate separately and can be claimed at any time, while your staked tokens remain locked until the unlock date."
+          text="Auto-compound usually results in higher total rewards because earnings are added back to your stake every 24 hours. When off, rewards accumulate separately and can be claimed instead."
         />
       </div>
       <div className={styles.autoCompoundRow} onClick={onToggle}>
-        <span className={styles.autoCompoundLabel}>Auto-compound</span>
+        <div className={styles.autoCompoundText}>
+          <span className={styles.autoCompoundLabel}>Auto-compound</span>
+          <span className={styles.autoCompoundHint}>{helperText}</span>
+        </div>
         <button
           role="switch"
           aria-checked={on}
@@ -764,6 +873,122 @@ function AutoCompoundRow({ on, onToggle }: { on: boolean; onToggle: () => void }
             <span className={styles.toggleThumbInner} />
           </span>
         </button>
+      </div>
+    </div>
+  );
+}
+
+const STAKE_FAQ_ITEMS = [
+  {
+    id: "what-is-staking",
+    question: "What is staking?",
+    answer:
+      "Staking lets you lock your GRA to earn native protocol rewards over time. Your rewards depend on the selected lock period and whether auto-compound is enabled for that position.",
+  },
+  {
+    id: "lock-period",
+    question: "What does the lock period mean?",
+    answer:
+      "Your tokens stay locked until the unlock date you choose. Longer lock periods usually offer a higher APY, but you won’t be able to unstake or move that position before it unlocks.",
+  },
+  {
+    id: "auto-compound",
+    question: "What does auto-compound do?",
+    answer:
+      "When enabled, rewards are added back to your staked balance every 24 hours, so future rewards are earned on a larger base. This usually results in higher total rewards than keeping rewards separate over time.",
+  },
+  {
+    id: "how-to-stake",
+    question: "How does staking work here?",
+    answer:
+      "Choose the amount, select a lock period, review the details, and confirm the transaction in your wallet. Once the stake is active, rewards start accumulating based on your selected APY and reward settings automatically.",
+  },
+  {
+    id: "support",
+    question: "How can I contact support?",
+    answer: (
+      <>
+        If you need help with staking, rewards, or wallet issues, contact support via{" "}
+        <a
+          href="https://t.me/"
+          target="_blank"
+          rel="noreferrer"
+          className={styles.stakeFaqLink}
+        >
+          Telegram
+        </a>
+        . We recommend including your wallet address and a short description of the issue so the team can help faster.
+      </>
+    ),
+  },
+] as const;
+
+function StakeFaq() {
+  const [openItem, setOpenItem] = useState<string | null>(STAKE_FAQ_ITEMS[0].id);
+
+  function toggleItem(id: string) {
+    setOpenItem((current) => (current === id ? null : id));
+  }
+
+  return (
+    <div className={styles.stakeFaqSection}>
+      <h2 className={styles.stakeFaqTitle}>FAQ</h2>
+      <div className={styles.stakeFaqStack}>
+        {STAKE_FAQ_ITEMS.map((item) => (
+          <StakeFaqItem
+            key={item.id}
+            item={item}
+            isOpen={openItem === item.id}
+            onToggle={() => toggleItem(item.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StakeFaqItem({
+  item,
+  isOpen,
+  onToggle,
+}: {
+  item: (typeof STAKE_FAQ_ITEMS)[number];
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className={styles.stakeFaqItem}>
+      <button
+        type="button"
+        className={`${styles.stakeFaqTrigger} ${isOpen ? styles.stakeFaqTriggerOpen : ""}`}
+        onClick={onToggle}
+        onMouseDown={(e) => e.preventDefault()}
+        aria-expanded={isOpen}
+        aria-controls={`faq-panel-${item.id}`}
+      >
+        <span className={styles.stakeFaqQuestion}>{item.question}</span>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={`${styles.stakeFaqChevron} ${isOpen ? styles.stakeFaqChevronOpen : ""}`}
+          aria-hidden="true"
+        >
+          <path d="M17.92 8.18H12.31H6.08c-1.3 0-1.96 1.57-1.04 2.49l5.08 5.08c.83.83 2.19.83 3.02 0l1.99-1.99 3.09-3.09c.91-.92.25-2.49-1.05-2.49Z" fill="#A5A3AC"/>
+        </svg>
+      </button>
+
+      <div
+        id={`faq-panel-${item.id}`}
+        className={`${styles.stakeFaqPanel} ${isOpen ? styles.stakeFaqPanelOpen : styles.stakeFaqPanelClosed}`}
+      >
+        <div
+          className={`${styles.stakeFaqPanelInner} ${isOpen ? styles.stakeFaqPanelInnerOpen : ""}`}
+        >
+          <p className={styles.stakeFaqAnswer}>{item.answer}</p>
+        </div>
       </div>
     </div>
   );
@@ -925,6 +1150,27 @@ function ReviewStep2({ selectedPeriod, amount, onBack, onStake }: {
       <path d="M14.978 14.98C14.728 11.81 12.188 9.27 9.01805 9.02C8.84805 9.01 8.66805 9 8.49805 9C4.90805 9 1.99805 11.91 1.99805 15.5C1.99805 19.09 4.90805 22 8.49805 22C12.088 22 14.998 19.09 14.998 15.5C14.998 15.33 14.988 15.15 14.978 14.98ZM9.37805 16.38L8.49805 18L7.61805 16.38L5.99805 15.5L7.61805 14.62L8.49805 13L9.37805 14.62L10.998 15.5L9.37805 16.38Z" fill="#A5A3AC"/>
     </svg>
   );
+  const s2InfoSvg = (
+    <span
+      aria-hidden="true"
+      style={{
+        display: "block",
+        width: 14,
+        height: 14,
+        flexShrink: 0,
+        marginTop: 1,
+        backgroundColor: "#B7AFFF",
+        maskImage: `url(${ASSETS.infoIcon})`,
+        WebkitMaskImage: `url(${ASSETS.infoIcon})`,
+        maskSize: "contain",
+        WebkitMaskSize: "contain",
+        maskRepeat: "no-repeat",
+        WebkitMaskRepeat: "no-repeat",
+        maskPosition: "center",
+        WebkitMaskPosition: "center",
+      }}
+    />
+  );
 
   const rows = [
     { icon: s2TimerSvg,  label: "Lock duration", value: period.duration,                         dimIcon: false },
@@ -934,7 +1180,7 @@ function ReviewStep2({ selectedPeriod, amount, onBack, onStake }: {
   ];
 
   return (
-    <div>
+    <div className={styles.s2Content}>
       {/* Header — reuses cardHeader layout */}
       <div className={styles.cardHeader}>
         <h2 className={styles.cardTitle}>Review your stake</h2>
@@ -948,35 +1194,36 @@ function ReviewStep2({ selectedPeriod, amount, onBack, onStake }: {
         </button>
       </div>
 
-      {/* Rows + info block */}
-      <div className={styles.s2Rows}>
-        {rows.map((row, i) => (
-          <div key={row.label}>
-            <div className={styles.s2Divider} />
-            <div className={styles.s2Row}>
-              {/* 48×48 icon container — row 4 (stake amount) at 70% opacity per Figma */}
-              <div className={styles.s2RowIcon} style={row.dimIcon ? { opacity: 0.7 } : undefined}>
-                {row.icon}
-              </div>
-              <div className={styles.s2RowTexts}>
-                <span className={styles.s2RowLabel}>{row.label}</span>
-                <span className={styles.s2RowValue}>{row.value}</span>
+      <div className={styles.s2Scrollable}>
+        {/* Rows + info block */}
+        <div className={styles.s2Rows}>
+          {rows.map((row, i) => (
+            <div key={row.label}>
+              <div className={styles.s2Divider} />
+              <div className={styles.s2Row}>
+                {/* 48×48 icon container — row 4 (stake amount) at 70% opacity per Figma */}
+                <div className={styles.s2RowIcon} style={row.dimIcon ? { opacity: 0.7 } : undefined}>
+                  {row.icon}
+                </div>
+                <div className={styles.s2RowTexts}>
+                  <span className={styles.s2RowLabel}>{row.label}</span>
+                  <span className={styles.s2RowValue}>{row.value}</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-        <div className={styles.s2Divider} />
+          ))}
+          <div className={styles.s2Divider} />
+        </div>
+
+        {/* Info block — purple-tinted */}
+        <div className={styles.s2InfoBlock}>
+          {s2InfoSvg}
+          <span className={styles.s2InfoText}>
+            Tokens will be locked until the unlock date and cannot be withdrawn.<br/>Please ensure you won&apos;t need these funds before then.
+          </span>
+        </div>
       </div>
 
-      {/* Info block — purple-tinted */}
-      <div className={styles.s2InfoBlock}>
-        <img src={ASSETS.s2InfoIcon} alt="" width={14} height={14} style={{ display: "block", flexShrink: 0, marginTop: 1 }} />
-        <span className={styles.s2InfoText}>
-          Tokens will be locked until the unlock date and cannot be withdrawn.<br/>Please ensure you won&apos;t need these funds before then.
-        </span>
-      </div>
-
-      <div style={{ height: '24px' }} />
       <button className={styles.continueButton} onClick={onStake}>
         <span className={styles.continueButtonInner}>
           <span className={styles.continueButtonText}>Stake {stakeAmount.toFixed(2)} GRA</span>
@@ -1041,10 +1288,7 @@ function SuccessStep4({ amount, onStakeMore, onViewPortfolio }: {
   return (
     <div className={styles.s4Container} style={{ position: "relative", height: "100%" }}>
       <div className={styles.s4Content} style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center", width: "100%" }}>
-        <div className={styles.s4Icon}>
-          <img src={ASSETS.s4EllipseIcon} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }} />
-          <img src={ASSETS.s4CheckIcon} alt="" width={27} height={23} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", display: "block" }} />
-        </div>
+        <SuccessStateIcon />
         <div className={styles.s4TextBlock}>
           <p className={styles.s4Title}>Stake successful!</p>
           <p className={styles.s4Subtitle}>{stakeAmount.toFixed(2)} GRA is locked and working for you.</p>
@@ -1138,6 +1382,19 @@ function StakeForm({ walletBalance, resetKey, formStep, onStepChange, onViewPort
   }
 
   function handleAmountChange(v: string) {
+    if (v === "") {
+      setAmount("");
+      setActiveChip(null);
+      return;
+    }
+
+    const numeric = Number(v);
+    if (!Number.isNaN(numeric) && numeric > MAX_STAKE_INPUT) {
+      setAmount(MAX_STAKE_INPUT.toString());
+      setActiveChip(null);
+      return;
+    }
+
     setAmount(v);
     setActiveChip(null);
   }
@@ -1154,74 +1411,81 @@ function StakeForm({ walletBalance, resetKey, formStep, onStepChange, onViewPort
     phase === "exiting" ? (direction === "back" ? styles.stepFadeExitBack : styles.stepFadeExit) :
     phase === "entering" ? (direction === "back" ? styles.stepFadeEnterBack : styles.stepFadeEnter) :
     "";
+  const amountNumber = parseFloat(amount) || 0;
+  const hasAmount = amount.trim() !== "";
+  const hasInsufficientBalanceError = hasAmount && amountNumber - walletBalance > 0.01;
+  const amountErrorMessage = hasInsufficientBalanceError ? "Insufficient balance" : null;
 
   return (
-    <div className={styles.card}>
-      <div className={phaseClass}>
-        <div style={{ display: displayStep === 1 ? "block" : "none" }}>
-          <div className={styles.cardHeader}>
-            <h1 className={styles.cardTitle}>Stake GRA</h1>
-            <div className={styles.walletBalance}>
-              <WalletIcon />
-              <span className={styles.walletBalanceText}>{walletBalance.toLocaleString("en", { minimumFractionDigits: 2 })} GRA</span>
+    <div className={styles.stakeFormStack}>
+      <div className={styles.card}>
+        <div className={phaseClass}>
+          <div style={{ display: displayStep === 1 ? "block" : "none" }}>
+            <div className={styles.cardHeader}>
+              <h1 className={styles.cardTitle}>Stake GRA</h1>
+              <div className={styles.walletBalance}>
+                <WalletIcon />
+                <span className={styles.walletBalanceText}>{walletBalance.toLocaleString("en", { minimumFractionDigits: 2 })} GRA</span>
+              </div>
             </div>
+
+            <AmountInput
+              value={amount}
+              onChange={handleAmountChange}
+              onHalf={handleHalf}
+              onMax={handleMax}
+              activeChip={activeChip}
+              errorMessage={amountErrorMessage}
+            />
+
+            <PeriodGrid selected={selectedPeriod} onSelect={setSelectedPeriod} />
+
+            <AutoCompoundRow on={autoCompound} onToggle={() => setAutoCompound((v) => !v)} />
+
+            <EstimatedRewards
+              amount={amount}
+              periodIndex={selectedPeriod}
+              autoCompound={autoCompound}
+            />
+
+            {isConnected ? (
+              <button className={styles.continueButton} onClick={() => onStepChange(2)} disabled={!amount || amountNumber <= 0 || amountNumber > walletBalance}>
+                <span className={styles.continueButtonInner}>
+                  <span className={styles.continueButtonText}>Continue</span>
+                </span>
+              </button>
+            ) : (
+              <button className={`${styles.continueButton} ${styles.continueButtonSecondary}`} onClick={onConnect}>
+                <span className={styles.continueButtonInner}>
+                  <span className={styles.continueButtonText}>Connect wallet</span>
+                </span>
+              </button>
+            )}
           </div>
 
-          <AmountInput
-            value={amount}
-            onChange={handleAmountChange}
-            onHalf={handleHalf}
-            onMax={handleMax}
-            activeChip={activeChip}
-            isError={!!amount && parseFloat(amount) - walletBalance > 0.01}
-          />
+          <div className={styles.stakeStep} style={{ display: displayStep === 2 ? "flex" : "none" }}>
+            <ReviewStep2
+              selectedPeriod={selectedPeriod}
+              amount={amount}
+              onBack={() => onStepChange(1)}
+              onStake={() => onStepChange(3)}
+            />
+          </div>
 
-          <PeriodGrid selected={selectedPeriod} onSelect={setSelectedPeriod} />
+          <div className={styles.stakeStep} style={{ display: displayStep === 3 ? "flex" : "none" }}>
+            <ConfirmingStep3 />
+          </div>
 
-          <AutoCompoundRow on={autoCompound} onToggle={() => setAutoCompound((v) => !v)} />
-
-          <EstimatedRewards
-            amount={amount}
-            periodIndex={selectedPeriod}
-            autoCompound={autoCompound}
-          />
-
-          {isConnected ? (
-            <button className={styles.continueButton} onClick={() => onStepChange(2)} disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > walletBalance}>
-              <span className={styles.continueButtonInner}>
-                <span className={styles.continueButtonText}>Continue</span>
-              </span>
-            </button>
-          ) : (
-            <button className={`${styles.continueButton} ${styles.continueButtonSecondary}`} onClick={onConnect}>
-              <span className={styles.continueButtonInner}>
-                <span className={styles.continueButtonText}>Connect wallet</span>
-              </span>
-            </button>
-          )}
-        </div>
-
-        <div style={{ display: displayStep === 2 ? "block" : "none" }}>
-          <ReviewStep2
-            selectedPeriod={selectedPeriod}
-            amount={amount}
-            onBack={() => onStepChange(1)}
-            onStake={() => onStepChange(3)}
-          />
-        </div>
-
-        <div style={{ display: displayStep === 3 ? "block" : "none" }}>
-          <ConfirmingStep3 />
-        </div>
-
-        <div style={{ display: displayStep === 4 ? "block" : "none" }}>
-          <SuccessStep4
-            amount={amount}
-            onStakeMore={handleStakeMore}
-            onViewPortfolio={onViewPortfolio}
-          />
+          <div className={styles.stakeStep} style={{ display: displayStep === 4 ? "flex" : "none" }}>
+            <SuccessStep4
+              amount={amount}
+              onStakeMore={handleStakeMore}
+              onViewPortfolio={onViewPortfolio}
+            />
+          </div>
         </div>
       </div>
+      {displayStep === 1 && <StakeFaq />}
     </div>
   );
 }
@@ -1314,7 +1578,9 @@ function PositionCard({ stake, now, onUnstake, onToggleAutoCompound, onHarvest, 
 }) {
   const { isUnlocked, label: unlockLabel, sublabel: unlockSublabel } = getUnlockInfo(stake.unlockDate, now);
   const accValue = computeAccumulatedValue(stake, now);
-  const rewardLabel = stake.autoCompound ? "Compounded" : "Rewards";
+  const rewardsLabel = stake.autoCompound ? "Compounded rewards" : "Rewards earned";
+  const rewardsValue = stake.autoCompound ? (stake.compoundedTotal ?? 0) + accValue : accValue;
+  const unlockValue = isUnlocked ? formatUnlockDisplay(stake.unlockDate) : `${unlockLabel} ${unlockSublabel}`.trim();
 
   function handleToggle() {
     const next = !stake.autoCompound;
@@ -1323,117 +1589,112 @@ function PositionCard({ stake, now, onUnstake, onToggleAutoCompound, onHarvest, 
 
   return (
     <div className={styles.positionCardFrame}>
-    <div className={styles.positionCard}>
-      {/* Amount */}
-      <span className={styles.positionAmountLabel}>Amount staked</span>
-      <span className={styles.positionAmount}>{stake.amount.toFixed(2)} GRA</span>
-      {/* Auto-compound toggle */}
-      <span className={styles.positionAcLabel}>Auto-compound</span>
-      <div style={{ position: "absolute", top: 42, right: 16 }}>
-        <button
-          role="switch"
-          aria-checked={stake.autoCompound}
-          className={`${styles.toggle} ${stake.autoCompound ? styles.toggleOn : styles.toggleOff}`}
-          onClick={handleToggle}
-        >
-          <span className={`${styles.toggleThumb} ${stake.autoCompound ? styles.toggleThumbOn : styles.toggleThumbOff}`}>
-            <span className={styles.toggleThumbInner} />
-          </span>
-        </button>
+      <div className={styles.positionCard}>
+        <div className={styles.positionCardHeader}>
+          <div className={styles.positionCardHeaderMain}>
+            <span className={styles.positionAmountLabel}>Amount staked</span>
+            <span className={styles.positionAmount}>{fmtGra(stake.amount)} GRA</span>
+          </div>
+          <div className={styles.positionApyBadge}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ display: "block" }}>
+              <path d="M7.44428 1.11544C7.78148 0.789451 8.37923 1.01862 8.37941 1.51876V5.64152H10.501C11.1005 5.64152 11.4439 6.32466 11.0862 6.80568L6.61755 12.8117C6.299 13.2398 5.61882 13.0145 5.61882 12.4809V8.35875H3.4956C2.89613 8.35863 2.55324 7.67489 2.91112 7.1939L7.37976 1.18787L7.44428 1.11544Z" fill="#CAF29F"/>
+            </svg>
+            <span className={styles.positionApyBadgeText}>APY: {Math.round(stake.apy * 100)}%</span>
+          </div>
+        </div>
+
+        <div className={styles.positionDivider1} />
+
+        <div className={styles.positionRow}>
+          <div className={styles.positionRowLeft}>
+            <div className={styles.positionIconBox}>
+              <img src="/staking/compounded-icon-card.svg" alt="" width={20} height={20} style={{ display: "block" }} />
+            </div>
+            <div className={styles.positionRowText}>
+              <span className={styles.positionSectionLabel}>Auto-compound</span>
+              <span className={styles.positionSectionValue}>{stake.autoCompound ? "Enabled" : "Disabled"}</span>
+            </div>
+          </div>
+          <div className={styles.positionRowAction}>
+            <button
+              role="switch"
+              aria-checked={stake.autoCompound}
+              className={`${styles.toggle} ${stake.autoCompound ? styles.toggleOn : styles.toggleOff}`}
+              onClick={handleToggle}
+            >
+              <span className={`${styles.toggleThumb} ${stake.autoCompound ? styles.toggleThumbOn : styles.toggleThumbOff}`}>
+                <span className={styles.toggleThumbInner} />
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.positionDivider2} />
+
+        <div className={styles.positionRow}>
+          <div className={styles.positionRowLeft}>
+            <div className={styles.positionIconBox}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
+                <g transform="translate(4 3.58)">
+                  <path d="M14.736 8.416V13.469C14.736 15.33 13.229 16.837 11.368 16.837H4.631C2.77 16.837 1.263 15.33 1.263 13.469V8.416C1.263 7.953 1.642 7.574 2.105 7.574H3.764C4.227 7.574 4.606 7.953 4.606 8.416V11.06C4.606 11.683 4.951 12.256 5.499 12.551C5.743 12.686 6.012 12.753 6.29 12.753C6.61 12.753 6.93 12.66 7.208 12.475L8.008 11.953L8.749 12.45C9.263 12.795 9.92 12.837 10.467 12.542C11.023 12.248 11.368 11.683 11.368 11.052V8.416C11.368 7.953 11.747 7.574 12.21 7.574H13.894C14.357 7.574 14.736 7.953 14.736 8.416Z" fill="#A5A3AC"/>
+                  <path d="M15.999 4.206V5.048C15.999 5.974 15.553 6.732 14.315 6.732H1.684C0.396 6.732 0 5.974 0 5.048V4.206C0 3.279 0.396 2.521 1.684 2.521H14.315C15.553 2.521 15.999 3.279 15.999 4.206Z" fill="#A5A3AC"/>
+                  <path d="M7.696 2.524H3.048C2.761 2.213 2.77 1.733 3.073 1.429L4.269 0.234C4.58 -0.078 5.094 -0.078 5.405 0.234L7.696 2.524Z" fill="#A5A3AC"/>
+                  <path d="M12.942 2.524H8.294L10.584 0.234C10.896 -0.078 11.41 -0.078 11.721 0.234L12.917 1.429C13.22 1.733 13.228 2.213 12.942 2.524Z" fill="#A5A3AC"/>
+                  <path d="M9.658 7.574C10.121 7.574 10.5 7.953 10.5 8.416V11.052C10.5 11.726 9.751 12.13 9.195 11.751L8.437 11.246C8.159 11.06 7.797 11.06 7.511 11.246L6.719 11.768C6.163 12.138 5.422 11.734 5.422 11.069V8.416C5.422 7.953 5.801 7.574 6.264 7.574H9.658Z" fill="#A5A3AC"/>
+                </g>
+              </svg>
+            </div>
+            <div className={styles.positionRowText}>
+              <span className={styles.positionSectionLabel}>{rewardsLabel}</span>
+              <span className={styles.positionSectionValue}>{fmtRewardGra(rewardsValue)} GRA</span>
+            </div>
+          </div>
+          {!stake.autoCompound && (
+            <div className={styles.positionRowAction}>
+              <button
+                className={styles.positionHarvestBtn}
+                onClick={() => onHarvest(stake.id, accValue)}
+                disabled={accValue.toFixed(6) === "0.000000"}
+                aria-label="Harvest"
+              >
+                <span className={styles.positionUnstakeBtnInner}>
+                  <span className={styles.positionHarvestBtnText}>Harvest</span>
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.positionDivider3} />
+
+        <div className={`${styles.positionRow} ${styles.positionRowLast}`}>
+          <div className={styles.positionRowLeft}>
+            <div className={styles.positionIconBox}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
+                <path d="M12 4C7.592 4 4 7.592 4 12C4 16.408 7.592 20 12 20C16.408 20 20 16.408 20 12C20 7.592 16.408 4 12 4ZM15.48 14.856C15.368 15.048 15.168 15.152 14.96 15.152C14.856 15.152 14.752 15.128 14.656 15.064L12.176 13.584C11.56 13.216 11.104 12.408 11.104 11.696V8.416C11.104 8.088 11.376 7.816 11.704 7.816C12.032 7.816 12.304 8.088 12.304 8.416V11.696C12.304 11.984 12.544 12.408 12.792 12.552L15.272 14.032C15.56 14.2 15.656 14.568 15.48 14.856Z" fill="#A5A3AC"/>
+              </svg>
+            </div>
+            <div className={styles.positionRowText}>
+              <span className={`${styles.positionSectionLabel} ${isUnlocked ? styles.positionUnlockedLabel : ""}`}>
+                {isUnlocked ? "Unlocked" : "Unlock in"}
+              </span>
+              <span className={styles.positionSectionValue}>{unlockValue}</span>
+            </div>
+          </div>
+          <div className={styles.positionRowAction}>
+            <button
+              className={`${styles.positionUnstakeBtn} ${isUnlocked ? styles.positionUnstakeBtnActive : styles.positionUnstakeBtnLocked}`}
+              onClick={() => { if (isUnlocked) onUnstake(stake.id); }}
+              disabled={!isUnlocked}
+              aria-label="Unstake"
+            >
+              <span className={styles.positionUnstakeBtnInner}>
+                <span className={styles.positionUnstakeBtnText}>Unstake</span>
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
-
-      {/* Divider 1 */}
-      <div className={styles.positionDivider1} />
-
-      {/* Meta row: lock period + APY */}
-      <p className={`${styles.positionMetaItem} ${styles.positionMetaItemLeft}`}>
-        Lock period: <span className={styles.positionMetaValue}>{stake.lockPeriod}</span>
-      </p>
-      <p className={`${styles.positionMetaItem} ${styles.positionMetaItemRight}`}>
-        APY: <span className={styles.positionMetaValue}>{Math.round(stake.apy * 100)}%</span>
-      </p>
-
-      {/* Divider 2 */}
-      <div className={styles.positionDivider2} />
-
-      {/* Unlock section */}
-      <div className={styles.positionIconBox} style={{ top: 149 }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-          <g filter="url(#filter_clock)">
-            <path d="M12 4C7.592 4 4 7.592 4 12C4 16.408 7.592 20 12 20C16.408 20 20 16.408 20 12C20 7.592 16.408 4 12 4ZM15.48 14.856C15.368 15.048 15.168 15.152 14.96 15.152C14.856 15.152 14.752 15.128 14.656 15.064L12.176 13.584C11.56 13.216 11.104 12.408 11.104 11.696V8.416C11.104 8.088 11.376 7.816 11.704 7.816C12.032 7.816 12.304 8.088 12.304 8.416V11.696C12.304 11.984 12.544 12.408 12.792 12.552L15.272 14.032C15.56 14.2 15.656 14.568 15.48 14.856Z" fill="#A5A3AC"/>
-          </g>
-          <defs>
-            <filter id="filter_clock" x="4" y="4" width="16" height="16.24" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-              <feFlood floodOpacity="0" result="BackgroundImageFix"/>
-              <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
-              <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-              <feOffset dy="0.24"/>
-              <feGaussianBlur stdDeviation="0.12"/>
-              <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
-              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/>
-              <feBlend mode="normal" in2="shape" result="effect1_innerShadow"/>
-            </filter>
-          </defs>
-        </svg>
-      </div>
-      <span className={`${styles.positionSectionLabel} ${isUnlocked ? styles.positionUnlockedLabel : ""}`} style={{ top: 149 }}>
-        {isUnlocked ? "Unlocked" : "Unlock in"}
-      </span>
-      <div className={styles.positionSectionValue} style={{ top: 169 }}>
-        {isUnlocked
-          ? <span className={styles.positionValueText}>{formatUnlockDisplay(stake.unlockDate)}</span>
-          : <><span className={styles.positionValueText}>{unlockLabel}</span>{unlockSublabel && <span className={styles.positionValueSub}>{" "}{unlockSublabel}</span>}</>
-        }
-      </div>
-      <button
-        className={`${styles.positionUnstakeBtn} ${isUnlocked ? styles.positionUnstakeBtnActive : styles.positionUnstakeBtnLocked}`}
-        style={{ top: 151 }}
-        onClick={() => { if (isUnlocked) onUnstake(stake.id); }}
-        disabled={!isUnlocked}
-        aria-label="Unstake"
-      >
-        <span className={styles.positionUnstakeBtnInner}>
-          <span className={styles.positionUnstakeBtnText}>Unstake</span>
-        </span>
-      </button>
-
-      {/* Divider 3 */}
-      <div className={styles.positionDivider3} />
-
-      {/* Reward / Compounded section */}
-      <div className={styles.positionIconBox} style={{ top: 217 }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-          <g transform="translate(4 3.58)">
-            <path d="M14.736 8.416V13.469C14.736 15.33 13.229 16.837 11.368 16.837H4.631C2.77 16.837 1.263 15.33 1.263 13.469V8.416C1.263 7.953 1.642 7.574 2.105 7.574H3.764C4.227 7.574 4.606 7.953 4.606 8.416V11.06C4.606 11.683 4.951 12.256 5.499 12.551C5.743 12.686 6.012 12.753 6.29 12.753C6.61 12.753 6.93 12.66 7.208 12.475L8.008 11.953L8.749 12.45C9.263 12.795 9.92 12.837 10.467 12.542C11.023 12.248 11.368 11.683 11.368 11.052V8.416C11.368 7.953 11.747 7.574 12.21 7.574H13.894C14.357 7.574 14.736 7.953 14.736 8.416Z" fill="#A5A3AC"/>
-            <path d="M15.999 4.206V5.048C15.999 5.974 15.553 6.732 14.315 6.732H1.684C0.396 6.732 0 5.974 0 5.048V4.206C0 3.279 0.396 2.521 1.684 2.521H14.315C15.553 2.521 15.999 3.279 15.999 4.206Z" fill="#A5A3AC"/>
-            <path d="M7.696 2.524H3.048C2.761 2.213 2.77 1.733 3.073 1.429L4.269 0.234C4.58 -0.078 5.094 -0.078 5.405 0.234L7.696 2.524Z" fill="#A5A3AC"/>
-            <path d="M12.942 2.524H8.294L10.584 0.234C10.896 -0.078 11.41 -0.078 11.721 0.234L12.917 1.429C13.22 1.733 13.228 2.213 12.942 2.524Z" fill="#A5A3AC"/>
-            <path d="M9.658 7.574C10.121 7.574 10.5 7.953 10.5 8.416V11.052C10.5 11.726 9.751 12.13 9.195 11.751L8.437 11.246C8.159 11.06 7.797 11.06 7.511 11.246L6.719 11.768C6.163 12.138 5.422 11.734 5.422 11.069V8.416C5.422 7.953 5.801 7.574 6.264 7.574H9.658Z" fill="#A5A3AC"/>
-          </g>
-        </svg>
-      </div>
-      <span className={styles.positionSectionLabel} style={{ top: 217 }}>{rewardLabel}</span>
-      <span className={styles.positionValueText} style={{ position: "absolute", top: 237, left: 64 }}>
-        {accValue.toFixed(6)} GRA
-      </span>
-
-      {/* Harvest button (AC off only) */}
-      {!stake.autoCompound && (
-        <button
-          className={`${styles.continueButton} ${styles.continueButtonSecondary}`}
-          style={{ position: "absolute", top: 219, right: 16, width: 78, height: 32 }}
-          onClick={() => onHarvest(stake.id, accValue)}
-          aria-label="Harvest rewards"
-        >
-          <span className={`${styles.positionUnstakeBtnInner} ${styles.continueButtonInner}`}>
-            <span className={styles.positionHarvestBtnText}>Harvest</span>
-          </span>
-        </button>
-      )}
-
-      {/* Inset highlight */}
-      <div className={styles.positionCardInset} />
-    </div>
     </div>
   );
 }
@@ -1446,42 +1707,21 @@ function ActiveStakesView({ stakes, now, onUnstake, onToggleAutoCompound, onHarv
   onHarvest: (id: number, amount: number) => void;
   onShowToast: (msg: string) => void;
 }) {
-  const [filter, setFilter] = useState<"all" | "unlocked">("all");
-  const unlockedStakes = stakes.filter((s) => new Date(s.unlockDate) <= now);
-  const countStyle = { color: "var(--color-mid-400)" };
-  const filterTabs: TabItem[] = [
-    { id: "all",      label: <>{"All\u00a0"}<span style={countStyle}>({stakes.length})</span></> },
-    { id: "unlocked", label: <>{"Unlocked\u00a0"}<span style={countStyle}>({unlockedStakes.length})</span></> },
-  ];
-
   return (
-    <div className={styles.card} style={{ height: '604px', display: 'flex', flexDirection: 'column' }}>
-      <p className={styles.positionsTitle}>
-        My positions
-      </p>
-      <div className={styles.positionsFilter}>
-        <div className={styles.wmFeeCtrl}>
-          <TabSwitcher
-            tabs={filterTabs}
-            value={filter}
-            onChange={(v) => setFilter(v as "all" | "unlocked")}
-            fillWidth
-          />
-        </div>
-      </div>
+    <div className={styles.positionsView}>
       <div className={styles.positionsListWrap}>
         <div className={styles.positionsList}>
-          {stakes.map((stake) => {
-            const isUnlocked = new Date(stake.unlockDate) <= now;
-            const visible =
-              filter === "all" ||
-              (filter === "unlocked" && isUnlocked);
-            return (
-              <div key={stake.id} style={visible ? undefined : { display: "none" }}>
-                <PositionCard stake={stake} now={now} onUnstake={onUnstake} onToggleAutoCompound={onToggleAutoCompound} onHarvest={onHarvest} onShowToast={onShowToast} />
-              </div>
-            );
-          })}
+          {stakes.map((stake) => (
+            <PositionCard
+              key={stake.id}
+              stake={stake}
+              now={now}
+              onUnstake={onUnstake}
+              onToggleAutoCompound={onToggleAutoCompound}
+              onHarvest={onHarvest}
+              onShowToast={onShowToast}
+            />
+          ))}
         </div>
       </div>
     </div>
@@ -1766,12 +2006,17 @@ function HarvestAllModal({ open, stakes, now, priorityFee, onClose, onConfirm }:
   const [progressComplete, setProgressComplete] = useState(false);
   const [batchHarvestEntries, setBatchHarvestEntries] = useState<Array<{ stake: StakeRecord; amount: number }>>([]);
   const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onConfirmRef = useRef(onConfirm);
 
   const harvestable = stakes
     .filter((s) => !s.autoCompound)
     .map((s) => ({ stake: s, amount: computeAccumulatedValue(s, now) }))
     .filter((entry) => entry.amount > 0);
   const totalHarvest = batchHarvestEntries.reduce((sum, entry) => sum + entry.amount, 0);
+
+  useEffect(() => {
+    onConfirmRef.current = onConfirm;
+  }, [onConfirm]);
 
   useEffect(() => {
     if (!open) {
@@ -1805,7 +2050,7 @@ function HarvestAllModal({ open, stakes, now, priorityFee, onClose, onConfirm }:
     if (!open || phase !== "progress" || progressComplete) return;
 
     if (batchHarvestEntries.length === 0) {
-      onConfirm();
+      onConfirmRef.current();
       setProgressComplete(true);
       return;
     }
@@ -1817,7 +2062,7 @@ function HarvestAllModal({ open, stakes, now, priorityFee, onClose, onConfirm }:
       }
 
       if (activeTxIndex >= batchHarvestEntries.length - 1) {
-        onConfirm();
+        onConfirmRef.current();
         setActiveTxIndex(batchHarvestEntries.length);
         setProgressComplete(true);
         return;
@@ -1825,12 +2070,12 @@ function HarvestAllModal({ open, stakes, now, priorityFee, onClose, onConfirm }:
 
       setActiveTxIndex((i) => i + 1);
       setActiveTxStage("wallet");
-    }, activeTxStage === "wallet" ? 1800 : activeTxIndex === 0 ? 4000 : 1400);
+    }, 2250);
 
     return () => {
       if (progressTimer.current) clearTimeout(progressTimer.current);
     };
-  }, [open, phase, progressComplete, activeTxIndex, activeTxStage, batchHarvestEntries.length, onConfirm]);
+  }, [open, phase, progressComplete, activeTxIndex, activeTxStage, batchHarvestEntries.length]);
 
   function handleConfirmClick() {
     setActiveTxIndex(0);
@@ -2018,6 +2263,7 @@ function formatBatchPriorityFee(priorityFee: "low" | "medium" | "high", txCount:
 }
 
 const PRELOAD_MODAL_ASSETS = [
+  ASSETS.infoIcon,
   ASSETS.phantomBase,
   ASSETS.phantomVector,
   ASSETS.toastIconVector,
@@ -2219,14 +2465,20 @@ function UnstakeBatchModal({ open, stakes, now, priorityFee, onClose, onConfirm,
   const [progressComplete, setProgressComplete] = useState(false);
   const [batchStakes, setBatchStakes] = useState<StakeRecord[]>([]);
   const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onConfirmRef = useRef(onConfirm);
 
   const unlocked = stakes.filter((s) => new Date(s.unlockDate) <= now);
-  const totalAmount = batchStakes.reduce((sum, s) => sum + s.amount, 0);
-  const totalRewards = batchStakes
+  const renderedBatchStakes = batchStakes.length > 0 ? batchStakes : unlocked;
+  const totalAmount = renderedBatchStakes.reduce((sum, s) => sum + s.amount, 0);
+  const totalRewards = renderedBatchStakes
     .filter((s) => !s.autoCompound)
     .reduce((sum, s) => sum + computeAccumulatedValue(s, now), 0);
   const showRewardsInfo = totalRewards.toFixed(6) !== "0.000000";
   const totalReceive = totalAmount + totalRewards;
+
+  useEffect(() => {
+    onConfirmRef.current = onConfirm;
+  }, [onConfirm]);
 
   useEffect(() => {
     if (!open) {
@@ -2261,7 +2513,7 @@ function UnstakeBatchModal({ open, stakes, now, priorityFee, onClose, onConfirm,
     if (!open || phase !== "progress" || progressComplete) return;
 
     if (batchStakes.length === 0) {
-      onConfirm();
+      onConfirmRef.current();
       setProgressComplete(true);
       return;
     }
@@ -2273,7 +2525,7 @@ function UnstakeBatchModal({ open, stakes, now, priorityFee, onClose, onConfirm,
       }
 
       if (activeTxIndex >= batchStakes.length - 1) {
-        onConfirm();
+        onConfirmRef.current();
         setActiveTxIndex(batchStakes.length);
         setProgressComplete(true);
         return;
@@ -2281,12 +2533,12 @@ function UnstakeBatchModal({ open, stakes, now, priorityFee, onClose, onConfirm,
 
       setActiveTxIndex((i) => i + 1);
       setActiveTxStage("wallet");
-    }, activeTxStage === "wallet" ? 1800 : activeTxIndex === 0 ? 4000 : 1400);
+    }, 2250);
 
     return () => {
       if (progressTimer.current) clearTimeout(progressTimer.current);
     };
-  }, [open, phase, progressComplete, activeTxIndex, activeTxStage, batchStakes.length, onConfirm]);
+  }, [open, phase, progressComplete, activeTxIndex, activeTxStage, batchStakes.length]);
 
   function handleConfirmClick() {
     setSuccessTotalReceive(totalReceive);
@@ -2302,7 +2554,7 @@ function UnstakeBatchModal({ open, stakes, now, priorityFee, onClose, onConfirm,
 
   const completedTransactions =
     phase === "progress"
-      ? (progressComplete ? batchStakes.length : activeTxIndex)
+      ? (progressComplete ? renderedBatchStakes.length : activeTxIndex)
       : 0;
 
   return (
@@ -2330,8 +2582,8 @@ function UnstakeBatchModal({ open, stakes, now, priorityFee, onClose, onConfirm,
                 <span className={styles.umAmount}>{fmtGra(totalReceive)} GRA</span>
               </div>
               {/* Scrollable stakes list */}
-              <div className={styles.umStakesList}>
-                {unlocked.map((stake) => (
+                <div className={styles.umStakesList}>
+                {renderedBatchStakes.map((stake) => (
                   <div key={stake.id}>
                     <div className={styles.umDivider} />
                     <div className={styles.umRow} style={{ marginTop: 16 }}>
@@ -2382,12 +2634,12 @@ function UnstakeBatchModal({ open, stakes, now, priorityFee, onClose, onConfirm,
                 <p className={styles.s3Title}>
                   {progressComplete ? "Unstake complete" : <>Unstaking<AnimatedDots /></>}
                 </p>
-                <p className={styles.umSubtitle}>Completed {completedTransactions} of {batchStakes.length} transactions.</p>
+                <p className={styles.umSubtitle}>Completed {completedTransactions} of {renderedBatchStakes.length} transactions.</p>
               </div>
 
               <div className={styles.umBatchProgressBlock}>
                 <div className={styles.umBatchProgressInner}>
-                  {batchStakes.map((stake, index) => {
+                  {renderedBatchStakes.map((stake, index) => {
                     let status: "success" | "wallet" | "submitting" | "waiting" = "waiting";
                     if (progressComplete || index < activeTxIndex) status = "success";
                     else if (index === activeTxIndex) status = activeTxStage;
@@ -2437,7 +2689,7 @@ function UnstakeBatchModal({ open, stakes, now, priorityFee, onClose, onConfirm,
                             </span>
                           </div>
                           <span className={styles.umBatchStepAmount}>{fmtGra(stake.amount)} GRA</span>
-                          {index < batchStakes.length - 1 && <div className={styles.umBatchStepDivider} aria-hidden="true" />}
+                          {index < renderedBatchStakes.length - 1 && <div className={styles.umBatchStepDivider} aria-hidden="true" />}
                         </div>
                       </div>
                     );
@@ -2580,10 +2832,11 @@ function WalletModal({ open, onClose, onCopyAddress, onDisconnect, walletBalance
 // Portfolio page
 // ---------------------------------------------------------------------------
 
-function PortfolioPage({ stakes, unstakedHistory, now, onUnstake, onToggleAutoCompound, onHarvest, onHarvestAll, onUnstakeAvailable, onStartStaking }: {
+function PortfolioPage({ stakes, unstakedHistory, now, chartAxisNow, onUnstake, onToggleAutoCompound, onHarvest, onHarvestAll, onUnstakeAvailable, onStartStaking }: {
   stakes: StakeRecord[];
   unstakedHistory: UnstakedRecord[];
   now: Date;
+  chartAxisNow: Date;
   onUnstake: (id: number) => void;
   onToggleAutoCompound: (id: number, enabled: boolean, rewardsAmount?: number) => void;
   onHarvest: (id: number, amount: number) => void;
@@ -2600,9 +2853,13 @@ function PortfolioPage({ stakes, unstakedHistory, now, onUnstake, onToggleAutoCo
   const unlockedStakes    = stakes.filter((s) => new Date(s.unlockDate) <= now);
   const availableToUnstake = unlockedStakes.reduce((sum, s) => sum + s.amount, 0);
 
-  const totalEarned        = stakes.reduce((sum, s) => sum + (s.compoundedTotal ?? 0) + computeAccumulatedValue(s, now), 0);
-  const autoCompounded     = stakes.reduce((sum, s) => sum + (s.compoundedTotal ?? 0), 0);
+  const autoCompounded     = stakes.reduce(
+    (sum, s) => sum + (s.compoundedTotal ?? 0) + (s.autoCompound ? computeAccumulatedValue(s, now) : 0),
+    0
+  );
   const availableToHarvest = stakes.filter((s) => !s.autoCompound).reduce((sum, s) => sum + computeAccumulatedValue(s, now), 0);
+  const accumulatedRewardsChartData = buildAccumulatedRewardsChartData(stakes, now, chartAxisNow);
+  const chartTimeOffsetSecs = Math.floor((now.getTime() - chartAxisNow.getTime()) / 1000);
 
   const countStyle = { color: "var(--color-mid-400)" };
   const filterTabs: TabItem[] = [
@@ -2620,9 +2877,19 @@ function PortfolioPage({ stakes, unstakedHistory, now, onUnstake, onToggleAutoCo
         <div className={styles.portfolioStatCard}>
           <span className={styles.portfolioCardTitle}>Total staked</span>
           <span className={styles.portfolioCardTotal}>{fmtGra(totalStaked)} GRA</span>
+          <button
+            className={styles.portfolioCardBtn}
+            style={{ minWidth: 145 }}
+            onClick={onUnstakeAvailable}
+            disabled={availableToUnstake === 0}
+          >
+            <span className={styles.portfolioCardBtnInner}>
+              <span className={styles.portfolioCardBtnText}>Unstake available</span>
+            </span>
+          </button>
           <div className={styles.portfolioCardDivider} style={{ top: 87 }} />
           {/* Average APY */}
-          <div className={styles.portfolioCardRow} style={{ top: 101 }}>
+          <div className={styles.portfolioCardRow} style={{ top: 103 }}>
             <div className={styles.portfolioCardIconBox}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
                 <g filter="url(#filter0_i_7337_2004)">
@@ -2645,9 +2912,24 @@ function PortfolioPage({ stakes, unstakedHistory, now, onUnstake, onToggleAutoCo
             <span className={styles.portfolioCardRowLabel}>Average APY</span>
             <span className={styles.portfolioCardRowValue}>{avgApy.toFixed(1)}%</span>
           </div>
-          <div className={styles.portfolioCardDivider} style={{ top: 156 }} />
+          <div className={styles.portfolioCardDivider} style={{ top: 159 }} />
+          {/* Compounded rewards */}
+          <div className={styles.portfolioCardRow} style={{ top: 175 }}>
+            <div className={styles.portfolioCardIconBox}>
+              <img
+                src="/staking/compounded-icon.svg"
+                alt=""
+                width={20}
+                height={20}
+                style={{ display: "block" }}
+              />
+            </div>
+            <span className={styles.portfolioCardRowLabel}>Compounded rewards</span>
+            <span className={styles.portfolioCardRowValue}>{fmtGra(autoCompounded)} GRA</span>
+          </div>
+          <div className={styles.portfolioCardDivider} style={{ top: 231 }} />
           {/* Available to unstake */}
-          <div className={styles.portfolioCardRow} style={{ top: 170 }}>
+          <div className={styles.portfolioCardRow} style={{ top: 247 }}>
             <div className={styles.portfolioCardIconBox}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
                 <g filter="url(#filter0_i_7337_2003)">
@@ -2671,69 +2953,14 @@ function PortfolioPage({ stakes, unstakedHistory, now, onUnstake, onToggleAutoCo
             <span className={styles.portfolioCardRowLabel}>Available to unstake</span>
             <span className={styles.portfolioCardRowValue}>{fmtGra(availableToUnstake)} GRA</span>
           </div>
-          <button
-            className={styles.portfolioCardBtn}
-            style={{ minWidth: 145 }}
-            onClick={onUnstakeAvailable}
-            disabled={availableToUnstake === 0}
-          >
-            <span className={styles.portfolioCardBtnInner}>
-              <span className={styles.portfolioCardBtnText}>Unstake available</span>
-            </span>
-          </button>
         </div>
 
-        {/* Right card — Total earned */}
+        {/* Right card — Accumulated rewards */}
         <div className={styles.portfolioStatCard}>
-          <span className={styles.portfolioCardTitle}>Total earned</span>
-          <span className={styles.portfolioCardTotal}>{fmtGra(totalEarned)} GRA</span>
-          <div className={styles.portfolioCardDivider} style={{ top: 87 }} />
-          {/* Auto-compounded */}
-          <div className={styles.portfolioCardRow} style={{ top: 101 }}>
-            <div className={styles.portfolioCardIconBox}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-                <g filter="url(#filter0_i_layers)">
-                  <path d="M12.1832 1.61338C10.8264 0.851095 9.17361 0.851093 7.81682 1.61338L2.7863 4.43968C1.57124 5.12235 1.57123 6.87856 2.7863 7.56123L7.81681 10.3875C9.17361 11.1498 10.8264 11.1498 12.1832 10.3875L17.2137 7.56123C18.4288 6.87857 18.4288 5.12235 17.2137 4.43969L12.1832 1.61338Z" fill="#A5A3AC"/>
-                  <path d="M2.4793 12.7809C1.58171 13.5642 1.68404 15.0669 2.7863 15.6862L7.81681 18.5125C9.17361 19.2748 10.8264 19.2748 12.1832 18.5125L17.2137 15.6862C18.316 15.067 18.4183 13.5642 17.5207 12.7809L12.7955 15.4357C11.0584 16.4116 8.94157 16.4116 7.20454 15.4357L2.4793 12.7809Z" fill="#A5A3AC"/>
-                  <path d="M2.34349 8.74621C1.59556 9.5562 1.74317 10.9335 2.7863 11.5196L7.81681 14.3459C9.17361 15.1081 10.8264 15.1082 12.1832 14.3459L17.2137 11.5196C18.2568 10.9335 18.4044 9.5562 17.6565 8.74621L12.7955 11.4773C11.0584 12.4532 8.94157 12.4532 7.20454 11.4773L2.34349 8.74621Z" fill="#A5A3AC"/>
-                </g>
-                <defs>
-                  <filter id="filter0_i_layers" x="0" y="0" width="20" height="20.2" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-                    <feFlood floodOpacity="0" result="BackgroundImageFix"/>
-                    <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
-                    <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-                    <feOffset dy="0.2"/>
-                    <feGaussianBlur stdDeviation="0.1"/>
-                    <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
-                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/>
-                    <feBlend mode="normal" in2="shape" result="effect1_innerShadow_layers"/>
-                  </filter>
-                </defs>
-              </svg>
-            </div>
-            <span className={styles.portfolioCardRowLabel}>Auto-compounded</span>
-            <span className={styles.portfolioCardRowValue}>{fmtGra(autoCompounded)} GRA</span>
-          </div>
-          <div className={styles.portfolioCardDivider} style={{ top: 156 }} />
-          {/* Available to harvest */}
-          <div className={styles.portfolioCardRow} style={{ top: 170 }}>
-            <div className={styles.portfolioCardIconBox}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-                <g>
-                  <path d="M16.6667 10V15C16.6667 16.8417 15.175 18.3333 13.3333 18.3333H6.66667C4.825 18.3333 3.33333 16.8417 3.33333 15V10C3.33333 9.54167 3.70833 9.16667 4.16667 9.16667H5.80833C6.26667 9.16667 6.64167 9.54167 6.64167 10V12.6167C6.64167 13.2333 6.98333 13.8 7.525 14.0917C7.76667 14.225 8.03333 14.2917 8.30833 14.2917C8.625 14.2917 8.94167 14.2 9.21667 14.0167L10.0083 13.5L10.7417 13.9917C11.25 14.3333 11.9 14.375 12.4417 14.0833C12.9917 13.7917 13.3333 13.2333 13.3333 12.6083V10C13.3333 9.54167 13.7083 9.16667 14.1667 9.16667H15.8333C16.2917 9.16667 16.6667 9.54167 16.6667 10Z" fill="#A5A3AC"/>
-                  <path d="M17.9167 5.83333V6.66667C17.9167 7.58333 17.475 8.33333 16.25 8.33333H3.75C2.475 8.33333 2.08333 7.58333 2.08333 6.66667V5.83333C2.08333 4.91667 2.475 4.16667 3.75 4.16667H16.25C17.475 4.16667 17.9167 4.91667 17.9167 5.83333Z" fill="#A5A3AC"/>
-                  <path d="M9.7 4.16667H5.1C4.81667 3.85833 4.825 3.38333 5.125 3.08333L6.30833 1.9C6.61667 1.59167 7.125 1.59167 7.43333 1.9L9.7 4.16667Z" fill="#A5A3AC"/>
-                  <path d="M14.8917 4.16667H10.2917L12.5583 1.9C12.8667 1.59167 13.375 1.59167 13.6833 1.9L14.8667 3.08333C15.1667 3.38333 15.175 3.85833 14.8917 4.16667Z" fill="#A5A3AC"/>
-                  <path d="M11.6417 9.16667C12.1 9.16667 12.475 9.54167 12.475 10V12.6083C12.475 13.275 11.7333 13.675 11.1833 13.3L10.4333 12.8C10.1583 12.6167 9.8 12.6167 9.51667 12.8L8.73333 13.3167C8.18333 13.6833 7.45 13.2833 7.45 12.625V10C7.45 9.54167 7.825 9.16667 8.28333 9.16667H11.6417Z" fill="#A5A3AC"/>
-                </g>
-              </svg>
-            </div>
-            <span className={styles.portfolioCardRowLabel}>Available to harvest</span>
-            <span className={styles.portfolioCardRowValue}>{fmtRewardGra(availableToHarvest)} GRA</span>
-          </div>
+          <span className={styles.portfolioCardTitle}>Accumulated rewards</span>
+          <span className={styles.portfolioCardTotal}>{fmtAccumulatedRewardGra(availableToHarvest)} GRA</span>
           <button
             className={styles.portfolioCardBtn}
-            style={{ minWidth: 102 }}
             onClick={onHarvestAll}
             disabled={availableToHarvest === 0}
           >
@@ -2741,11 +2968,20 @@ function PortfolioPage({ stakes, unstakedHistory, now, onUnstake, onToggleAutoCo
               <span className={styles.portfolioCardBtnText}>Harvest all</span>
             </span>
           </button>
+          <div className={styles.portfolioRewardChartWrap}>
+            <div className={styles.portfolioRewardChart}>
+              <AccumulatedRewardsLiveline
+                data={accumulatedRewardsChartData}
+                value={availableToHarvest}
+                timeOffsetSecs={chartTimeOffsetSecs}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* ── Filter tabs ── */}
-      <div className={styles.portfolioFilterRow}>
+      <div className={`${styles.portfolioFilterRow} ${styles.portfolioFilterTabs}`}>
         <TabSwitcher tabs={filterTabs} value={filter} onChange={(v) => setFilter(v as "active" | "unstaked")} />
       </div>
 
@@ -2907,7 +3143,9 @@ export default function StakingPage() {
   const [formStep, setFormStep] = useState(1);
   const [baseWalletBalance, setBaseWalletBalance] = useState(WALLET_BALANCE);
   const [stakes, setStakes] = useState<StakeRecord[]>([]);
-  const [simDate, setSimDate] = useState<Date | null>(null);
+  const [liveNow, setLiveNow] = useState(() => new Date());
+  const [simBaseDate, setSimBaseDate] = useState<Date | null>(null);
+  const [simBaseRealMs, setSimBaseRealMs] = useState<number | null>(null);
   const [priorityFee, setPriorityFee] = useState<"low" | "medium" | "high">("low");
   const [unstakeStakeId, setUnstakeStakeId] = useState<number | null>(null);
   const [unstakeBatchOpen, setUnstakeBatchOpen] = useState(false);
@@ -2937,6 +3175,23 @@ export default function StakingPage() {
       preloaded.length = 0;
     };
   }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setLiveNow(new Date());
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  function handleSimDateChange(next: Date | null) {
+    if (next) {
+      setSimBaseDate(next);
+      setSimBaseRealMs(Date.now());
+      return;
+    }
+    setSimBaseDate(null);
+    setSimBaseRealMs(null);
+  }
 
   const walletBalance = isConnected ? baseWalletBalance : 0;
 
@@ -2972,7 +3227,7 @@ export default function StakingPage() {
   function handleUnstakeConfirm(id: number) {
     const stake = stakes.find((s) => s.id === id);
     if (!stake) return;
-    const nowDate = simDate ?? new Date();
+    const nowDate = simBaseDate ? now : new Date();
     const accValue = computeAccumulatedValue(stake, nowDate);
     const rewards = !stake.autoCompound ? accValue : 0;
     const finalCompoundedTotal = stake.autoCompound
@@ -2998,7 +3253,7 @@ export default function StakingPage() {
   }
 
   function handleToggleAutoCompound(id: number, enabled: boolean, rewardsAmount?: number) {
-    const now = (simDate ?? new Date()).toISOString();
+    const nowIso = (simBaseDate ? now : new Date()).toISOString();
     let updates: Partial<StakeRecord>;
     let toastMsg: string;
     if (enabled) {
@@ -3006,10 +3261,10 @@ export default function StakingPage() {
       const rewards = rewardsAmount ?? 0;
       const newAmount = stake.amount + rewards;
       const newCompoundedTotal = (stake.compoundedTotal ?? 0) + rewards;
-      updates = { autoCompound: true, autoCompoundDisabledAt: undefined, amount: newAmount, compoundedTotal: newCompoundedTotal, rewardsStartTime: now };
+      updates = { autoCompound: true, autoCompoundDisabledAt: undefined, amount: newAmount, compoundedTotal: newCompoundedTotal, rewardsStartTime: nowIso };
       toastMsg = `${rewards.toFixed(6)} GRA rewards added to your stake`;
     } else {
-      updates = { autoCompound: false, autoCompoundDisabledAt: now, rewardsStartTime: now };
+      updates = { autoCompound: false, autoCompoundDisabledAt: nowIso, rewardsStartTime: nowIso };
       toastMsg = "Auto-compound disabled. New rewards will be available to harvest.";
     }
     updateStake(id, updates);
@@ -3025,7 +3280,7 @@ export default function StakingPage() {
   function handleHarvestConfirm(id: number) {
     const stake = stakes.find((s) => s.id === id);
     if (!stake || stake.autoCompound) return;
-    const nowDate = simDate ?? new Date();
+    const nowDate = simBaseDate ? now : new Date();
     const harvested = computeAccumulatedValue(stake, nowDate);
     if (harvested.toFixed(6) === "0.000000") return;
     const nowIso = nowDate.toISOString();
@@ -3040,7 +3295,7 @@ export default function StakingPage() {
   }
 
   function handleHarvestAll() {
-    const nowDate = simDate ?? new Date();
+    const nowDate = simBaseDate ? now : new Date();
     const total = stakes
       .filter((s) => !s.autoCompound)
       .reduce((sum, s) => sum + computeAccumulatedValue(s, nowDate), 0);
@@ -3049,7 +3304,7 @@ export default function StakingPage() {
   }
 
   function handleHarvestAllConfirm() {
-    const nowDate = simDate ?? new Date();
+    const nowDate = simBaseDate ? now : new Date();
     const nowIso = nowDate.toISOString();
     let total = 0;
     const updated = stakes.map((s) => {
@@ -3071,14 +3326,14 @@ export default function StakingPage() {
   }
 
   function handleUnstakeAvailable() {
-    const nowDate = simDate ?? new Date();
+    const nowDate = simBaseDate ? now : new Date();
     const unlocked = stakes.filter((s) => new Date(s.unlockDate) <= nowDate);
     if (unlocked.length === 0) return;
     setUnstakeBatchOpen(true);
   }
 
   function handleUnstakeBatchConfirm() {
-    const nowDate = simDate ?? new Date();
+    const nowDate = simBaseDate ? now : new Date();
     const nowIso = nowDate.toISOString();
     const unlocked = stakes.filter((s) => new Date(s.unlockDate) <= nowDate);
     if (unlocked.length === 0) return;
@@ -3126,7 +3381,10 @@ export default function StakingPage() {
     setFormStep(1);
   }
 
-  const now = simDate ?? new Date();
+  const now =
+    simBaseDate && simBaseRealMs !== null
+      ? new Date(simBaseDate.getTime() + (liveNow.getTime() - simBaseRealMs))
+      : liveNow;
   const isOverlayOpen = walletOpen || unstakeStakeId !== null || unstakeBatchOpen || harvestStakeId !== null || harvestAllOpen;
 
   return (
@@ -3135,7 +3393,7 @@ export default function StakingPage() {
         <Header activeNav={activeNav} onNavChange={setActiveNav} onWalletClick={handleWalletClick} isConnected={isConnected} />
 
         <main className={styles.content}>
-        <div style={{ display: activeNav === "stake" ? "contents" : "none" }}>
+        <div className={styles.stakeScreen} style={{ display: activeNav === "stake" ? "flex" : "none" }}>
           <div className={styles.topBar}>
             {mode === "stake" && <StepsIndicator activeStep={formStep} />}
             <ModeSwitch mode={mode} onModeChange={setMode} />
@@ -3155,6 +3413,7 @@ export default function StakingPage() {
             stakes={stakes}
             unstakedHistory={unstakedHistory}
             now={now}
+            chartAxisNow={liveNow}
             onUnstake={handleUnstake}
             onToggleAutoCompound={handleToggleAutoCompound}
             onHarvest={handleHarvest}
@@ -3164,9 +3423,8 @@ export default function StakingPage() {
           />
         )}
         </main>
-
-        <TimeSimulator simDate={simDate} onSimDateChange={setSimDate} mode={activeNav === "portfolio" ? "stake" : mode} />
       </div>
+      <TimeSimulator simDate={simBaseDate ? now : null} onSimDateChange={handleSimDateChange} mode={activeNav === "portfolio" ? "stake" : mode} />
 
       <WalletModal
         open={walletOpen}
