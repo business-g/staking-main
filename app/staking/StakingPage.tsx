@@ -6,57 +6,26 @@ import { Liveline, type LivelinePoint } from "liveline";
 import loaderAnimation from "../../public/loader-staking.json";
 import styles from "./StakingPage.module.css";
 
-// ---------------------------------------------------------------------------
-// Fresh asset URLs (re-fetched 2026-04-04, valid 7 days)
-// ---------------------------------------------------------------------------
 const ASSETS = {
   logoShape:      "/staking/input-gem.svg",
   stakeDefault:   "/staking/nav-stake-default.svg",
   stakeActive:    "/staking/nav-stake-active.svg",
   portfolioDefault: "/staking/nav-portfolio-default.svg",
   portfolioActive: "/staking/nav-portfolio-active.svg",
-  walletIcon:     "https://www.figma.com/api/mcp/asset/9dd30486-3fdc-4cb6-b8b9-b0bc1d1573f6",
   phantomBase:    "/staking/phantom-base.svg",
   phantomVector:  "/staking/phantom-vector.svg",
   infoIcon:       "/staking/info-icon.svg",
   tokenImg:       "/staking/input-gem.svg",
-  discordIcon:    "https://www.figma.com/api/mcp/asset/504a6b5f-54ed-4bc7-a24c-fc16a878c28a",
-  twitterIcon:    "https://www.figma.com/api/mcp/asset/59792a15-ff02-4a5c-be81-e039d6c059f8",
-  telegramIcon:   "https://www.figma.com/api/mcp/asset/21c88536-e979-4a8a-904a-5e6b31afe6e0",
-  // Wallet modal icons (fetched 2026-03-29)
   wmCloseIcon:      "https://www.figma.com/api/mcp/asset/6e19fdbc-d1fc-4bcb-b07f-bacea733c31f",
   wmCloseIconHover: "https://www.figma.com/api/mcp/asset/3687283e-c07c-4dc9-a6b3-323fc800912c",
   wmCopyIcon:       "/wallet/copy-icon.svg",
   wmExplorerIcon:   "/wallet/link-icon.svg",
   wmDisconnectIcon: "/wallet/power-icon.svg",
   wmBadgeIcon:      "/wallet/phantom-wallet-white-icon.svg",
-  // Toast icon (node 7207:793, fetched 2026-03-29)
-  toastIconBase:   "/staking/toast-success-base.svg",
   toastIconVector: "/staking/toast-success-check-v2.svg",
-  // Step 2 review screen icons (node 7209-1007, refetched 2026-03-29)
-  s2TimerIcon:  "https://www.figma.com/api/mcp/asset/6f55c8ad-4edc-4ea8-9f5d-699c655b0978",
-  s2UnlockIcon: "https://www.figma.com/api/mcp/asset/69835253-d585-4acc-b29b-2d325b927139",
-  s2TrendIcon:  "https://www.figma.com/api/mcp/asset/8d417589-346f-4827-b827-35d7d5d54d81",
-  s2AmountIcon: "https://www.figma.com/api/mcp/asset/408bf9b5-40ea-4eb0-9322-45b2ea3838ce",
-  s2BackDefault: "https://www.figma.com/api/mcp/asset/f12b760f-0773-4e91-96de-1e930910a9a8",
-  s2BackHover:   "https://www.figma.com/api/mcp/asset/2ee1a657-44f4-4125-be30-4e11841cf992",
-  s2InfoIcon:    "https://www.figma.com/api/mcp/asset/c06a070a-6c77-440f-a1ad-6b27ddb09cac",
-  // Step 4 success screen icons (fetched 2026-03-31)
   s4EllipseIcon:   "/staking/success-ellipse.svg",
   s4CheckIcon:     "/staking/success-check.svg",
-  // Unstake screen coin images (fetched 2026-03-31)
-  unstakeCoinLeft:  "https://www.figma.com/api/mcp/asset/405096ec-eb4f-4492-ba47-3b53c8ca0662",
-  unstakeCoinRight: "https://www.figma.com/api/mcp/asset/a40056cb-0487-4fa0-9e72-50581ceb474f",
   unstakeBlankStatus: "/staking/unstake-blank-status-v2.png",
-  // Position card assets (fetched 2026-04-01 from node 7250-2076)
-  positionDivider:   "https://www.figma.com/api/mcp/asset/c9672436-daa3-4700-aa0c-d8531cb946a2",
-  positionClockIcon: "https://www.figma.com/api/mcp/asset/670043ce-c425-4ab1-aab1-277a5b1737b7",
-  positionStarIcon:  "https://www.figma.com/api/mcp/asset/127f7f49-8cbb-4041-aa17-dcb508911f33",
-  // Portfolio page icons (fetched 2026-04-03 from node 7294-3068)
-  portfolioLightningIcon: "https://www.figma.com/api/mcp/asset/af336533-17ce-40fa-98ab-63a83626aab9",
-  portfolioLockOpenIcon:  "https://www.figma.com/api/mcp/asset/1089316b-9186-49b5-bf32-465d0ac2dfa1",
-  portfolioLayersIcon:    "https://www.figma.com/api/mcp/asset/f9335e7e-cbc2-43fe-8517-a574392dcdfa",
-  portfolioGiftIcon:      "https://www.figma.com/api/mcp/asset/716eb7f6-a38a-4c94-8006-8a0ab7a0a28f",
 };
 
 // ---------------------------------------------------------------------------
@@ -82,13 +51,11 @@ function StakeIcon({ active }: { active?: boolean }) {
 /** 16×16 wallet icon */
 function WalletIcon() {
   return (
-    <img
-      src={ASSETS.walletIcon}
-      alt=""
-      width={16}
-      height={16}
-      style={{ display: "block", flexShrink: 0 }}
-    />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ display: "block", flexShrink: 0 }}>
+      <path d="M12.6667 4H3.6C2.71634 4 2 4.71634 2 5.6V10.4C2 11.2837 2.71635 12 3.6 12H12.4C13.2837 12 14 11.2837 14 10.4V6.93333C14 6.19695 13.403 5.6 12.6667 5.6H11.4667C10.804 5.6 10.2667 6.13726 10.2667 6.8C10.2667 7.46274 10.804 8 11.4667 8H14" stroke="#A5A3AC" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M4 4V3.6C4 2.71635 4.71634 2 5.6 2H11.0667" stroke="#A5A3AC" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="11.4667" cy="6.8" r="0.666667" fill="#A5A3AC" />
+    </svg>
   );
 }
 
@@ -169,7 +136,9 @@ function InfoTooltip({ text, width, lineHeight }: { text: string; width: number;
 function DiscordIcon() {
   return (
     <span className={styles.iconWrap}>
-      <span style={{ display: "block", position: "absolute", top: "2px", left: 0, right: 0, height: "12px", backgroundColor: "currentColor", maskImage: `url(${ASSETS.discordIcon})`, WebkitMaskImage: `url(${ASSETS.discordIcon})`, maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center", WebkitMaskSize: "contain", WebkitMaskRepeat: "no-repeat", WebkitMaskPosition: "center" }} />
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ display: "block", position: "absolute", top: "1px", left: 0 }}>
+        <path d="M12.7092 4.2652C11.9942 3.93665 11.2266 3.70033 10.4292 3.56853C10.3955 3.62943 10.3561 3.71078 10.3292 3.77437C9.47317 3.6473 8.62338 3.6473 7.78396 3.77437C7.75703 3.71078 7.71613 3.62943 7.68197 3.56853C6.88366 3.70033 6.11465 3.9371 5.3996 4.26612C3.95901 6.39853 3.56764 8.47828 3.76332 10.5285C4.71858 11.2388 5.64416 11.6706 6.55463 11.9544C6.77942 11.651 6.97959 11.3309 7.15112 10.9944C6.82257 10.8718 6.50793 10.7223 6.21034 10.5494C6.28939 10.4913 6.36619 10.4305 6.44074 10.3679C8.25031 11.2057 10.2139 11.2057 12.0018 10.3679C12.0772 10.4305 12.154 10.4913 12.2326 10.5494C11.9346 10.7228 11.6195 10.8727 11.2905 10.9953C11.462 11.3314 11.6617 11.6514 11.8874 11.9553C12.7988 11.6715 13.7253 11.2397 14.6805 10.5285C14.9102 8.15232 14.2884 6.0917 12.7092 4.2652ZM7.02654 9.2671C6.48011 9.2671 6.03082 8.77111 6.03082 8.1622C6.03082 7.55329 6.47113 7.05684 7.02654 7.05684C7.58643 7.05684 8.03124 7.55782 8.02182 8.1622C8.02227 8.77111 7.58195 9.2671 7.02654 9.2671ZM11.4349 9.2671C10.8889 9.2671 10.4392 8.77111 10.4392 8.1622C10.4392 7.55329 10.8795 7.05684 11.4349 7.05684C11.9948 7.05684 12.4396 7.55782 12.4302 8.1622C12.4302 8.77111 11.9948 9.2671 11.4349 9.2671Z" fill="currentColor"/>
+      </svg>
     </span>
   );
 }
@@ -177,7 +146,9 @@ function DiscordIcon() {
 function TwitterIcon() {
   return (
     <span className={styles.iconWrap}>
-      <span style={{ display: "block", position: "absolute", top: "2px", left: "2px", width: "11px", height: "11px", backgroundColor: "currentColor", maskImage: `url(${ASSETS.twitterIcon})`, WebkitMaskImage: `url(${ASSETS.twitterIcon})`, maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center", WebkitMaskSize: "contain", WebkitMaskRepeat: "no-repeat", WebkitMaskPosition: "center" }} />
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ display: "block", position: "absolute", top: "2px", left: "2px" }}>
+        <path d="M9.52052 6.77871L13.9811 1.66699H12.9244L9.05115 6.10325L5.95814 1.66699H2.39062L7.06839 8.37371L2.39062 13.7344H3.44736L7.53731 9.04916L10.8034 13.7344H14.3709L9.52026 6.77871H9.52052ZM8.07293 8.43642L7.59907 7.77341L3.82816 2.49505H5.45172L8.49517 6.7566L8.96903 7.41961L12.925 12.9579H11.3014L8.07293 8.43668V8.43642Z" fill="currentColor"/>
+      </svg>
     </span>
   );
 }
@@ -185,7 +156,10 @@ function TwitterIcon() {
 function TelegramIcon() {
   return (
     <span className={styles.iconWrap}>
-      <span style={{ display: "block", position: "absolute", top: "2px", left: 0, width: "15px", height: "12px", backgroundColor: "currentColor", maskImage: `url(${ASSETS.telegramIcon})`, WebkitMaskImage: `url(${ASSETS.telegramIcon})`, maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center", WebkitMaskSize: "contain", WebkitMaskRepeat: "no-repeat", WebkitMaskPosition: "center" }} />
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ display: "block", position: "absolute", top: "2px", left: 0 }}>
+        <path d="M14.546 2.04254C14.7833 1.94521 15.0416 2.15164 14.9869 2.4022L13.3046 10.0862C13.2584 10.2969 13.0744 10.4464 12.8588 10.4488L10.5218 10.4748C10.3345 10.4769 10.1768 10.617 10.1526 10.8028L9.8538 13.0963C9.81857 13.3667 9.48614 13.4767 9.29614 13.2814L7.86637 11.8114C7.74735 11.6891 7.55731 11.6666 7.41227 11.7577L4.76036 13.4248C4.49769 13.59 4.15769 13.409 4.14959 13.0988L4.09395 10.9673C4.08984 10.8099 3.9844 10.6733 3.83563 10.6298L1.35075 9.90261C1.02486 9.80724 1.00202 9.35207 1.31697 9.22476L14.546 2.04254Z" fill="currentColor"/>
+        <path d="M13.8792 3.09229L4.92383 10.6815L7.60715 11.5372C7.73592 11.5782 7.8766 11.5538 7.98461 11.4723L12.9776 7.70649C13.051 7.65111 13.1442 7.74808 13.0817 7.81555L7.73672 13.587L7.8664 11.8112C7.87527 11.6897 7.83171 11.5701 7.74672 11.4828L5.46411 9.1374C5.31136 8.98041 5.32473 8.72663 5.49348 8.58649L13.7356 1.7394C13.8407 1.65213 13.9828 1.76054 13.9342 1.88993L13.8792 3.09229Z" fill="#0D0D0D" fillOpacity="0.15"/>
+      </svg>
     </span>
   );
 }
