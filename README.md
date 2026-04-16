@@ -39,11 +39,35 @@ Build for production:
 pnpm build
 ```
 
+Build the Cloudflare bundle:
+
+```bash
+pnpm exec opennextjs-cloudflare build
+```
+
 Start the production build locally:
 
 ```bash
 pnpm start
 ```
+
+## Cloudflare deployment
+
+This project is preconfigured for Cloudflare Workers via OpenNext.
+
+Use this deploy command in Cloudflare:
+
+```bash
+pnpm run deploy
+```
+
+Do not use:
+
+```bash
+npx wrangler deploy
+```
+
+That path triggers Cloudflare's auto-migration flow in CI and causes the workspace install failure.
 
 ## Notes
 
