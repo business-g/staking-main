@@ -6,8 +6,37 @@ import { Liveline, type LivelinePoint } from "liveline";
 import loaderAnimation from "../../public/loader-staking.json";
 import styles from "./StakingPage.module.css";
 
+const ACCENT_500_RGB = [0.956863, 0.839216, 0.639216] as const;
+
+function replaceLoaderAccent(node: unknown): unknown {
+  if (Array.isArray(node)) {
+    if (
+      node.length === 3 &&
+      typeof node[0] === "number" &&
+      typeof node[1] === "number" &&
+      typeof node[2] === "number" &&
+      Math.abs(node[0] - 0.561) < 0.0001 &&
+      Math.abs(node[1] - 0.98) < 0.0001 &&
+      Math.abs(node[2] - 1) < 0.0001
+    ) {
+      return [...ACCENT_500_RGB];
+    }
+    return node.map(replaceLoaderAccent);
+  }
+
+  if (node && typeof node === "object") {
+    return Object.fromEntries(
+      Object.entries(node).map(([key, value]) => [key, replaceLoaderAccent(value)])
+    );
+  }
+
+  return node;
+}
+
+const loaderAnimationAccent = replaceLoaderAccent(loaderAnimation);
+
 const ASSETS = {
-  logoShape:      "/staking/input-gem.svg",
+  headerLogo:     "/staking/logo-gemra-white.svg",
   stakeDefault:   "/staking/nav-stake-default.svg",
   stakeActive:    "/staking/nav-stake-active.svg",
   portfolioDefault: "/staking/nav-portfolio-default.svg",
@@ -25,7 +54,7 @@ const ASSETS = {
   toastIconVector: "/staking/toast-success-check-v2.svg",
   s4EllipseIcon:   "/staking/success-ellipse.svg",
   s4CheckIcon:     "/staking/success-check.svg",
-  unstakeBlankStatus: "/staking/unstake-blank-status-v2.png",
+  unstakeBlankStatus: "/staking/unstake_blank.png",
 };
 
 // ---------------------------------------------------------------------------
@@ -52,7 +81,7 @@ function StakeIcon({ active }: { active?: boolean }) {
 function WalletIcon() {
   return (
     <img
-      src="/staking/header-wallet-icon.svg"
+      src="/staking/form-wallet-icon.svg"
       alt=""
       width={16}
       height={16}
@@ -76,7 +105,7 @@ function SuccessStateIcon() {
   return (
     <div className={styles.s4Icon}>
       <svg width="88" height="88" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block", width: "100%", height: "100%" }}>
-        <circle cx="44" cy="44" r="44" fill="#90F9FF" />
+        <circle cx="44" cy="44" r="44" fill="#F4D6A3" />
         <path d="M23.4993 0.677918C24.2293 -0.150844 25.4937 -0.230811 26.3225 0.499207C27.1513 1.22929 27.2312 2.4936 26.5012 3.32245L9.76684 22.3224C9.38716 22.7534 8.84025 23.0002 8.26587 23.0002C7.69148 23.0002 7.14456 22.7534 6.76489 22.3224L0.499264 15.2082C-0.230781 14.3793 -0.150922 13.115 0.677975 12.3849C1.50688 11.6549 2.77115 11.7357 3.50122 12.5646L8.26489 17.9728L23.4993 0.677918Z" fill="#0D0D0D" transform="translate(30 32)" />
       </svg>
     </div>
@@ -116,6 +145,8 @@ function InfoTooltip({ text, width, lineHeight }: { text: string; width: number;
     <span
       ref={anchorRef}
       className={styles.tooltipAnchor}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setVisible(false)}
     >
@@ -136,17 +167,108 @@ function InfoTooltip({ text, width, lineHeight }: { text: string; width: number;
   );
 }
 
+function StakeBackgroundLoop() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const leftCanvasRef = useRef<HTMLCanvasElement>(null);
+  const rightCanvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const leftCanvas = leftCanvasRef.current;
+    const rightCanvas = rightCanvasRef.current;
+    if (!video || !leftCanvas || !rightCanvas) return;
+
+    const leftCtx = leftCanvas.getContext("2d");
+    const rightCtx = rightCanvas.getContext("2d");
+    if (!leftCtx || !rightCtx) return;
+
+    const cssWidth = 309;
+    const cssHeight = 174;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const canvases = [
+      [leftCanvas, leftCtx],
+      [rightCanvas, rightCtx],
+    ] as const;
+
+    for (const [canvas, ctx] of canvases) {
+      canvas.width = Math.round(cssWidth * dpr);
+      canvas.height = Math.round(cssHeight * dpr);
+      canvas.style.width = `${cssWidth}px`;
+      canvas.style.height = `${cssHeight}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+    }
+
+    const draw = () => {
+      if (video.readyState >= 2) {
+        for (const [, ctx] of canvases) {
+          ctx.clearRect(0, 0, cssWidth, cssHeight);
+          ctx.drawImage(video, 0, 0, cssWidth, cssHeight);
+        }
+      }
+      rafRef.current = window.requestAnimationFrame(draw);
+    };
+
+    const start = async () => {
+      try {
+        video.currentTime = 0;
+        await video.play();
+      } catch {
+        // Ignore autoplay failures for decorative media.
+      }
+      if (rafRef.current === null) {
+        rafRef.current = window.requestAnimationFrame(draw);
+      }
+    };
+
+    const handleLoaded = () => {
+      void start();
+    };
+
+    video.addEventListener("loadeddata", handleLoaded);
+    void start();
+
+    return () => {
+      video.removeEventListener("loadeddata", handleLoaded);
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      video.pause();
+    };
+  }, []);
+
+  return (
+    <div className={styles.stakeBackgroundVideoViewport} aria-hidden="true">
+      <div className={styles.stakeBackgroundVideo}>
+        <canvas ref={leftCanvasRef} className={styles.stakeBackgroundCanvas} />
+      </div>
+      <div className={`${styles.stakeBackgroundVideo} ${styles.stakeBackgroundVideoRight}`}>
+        <canvas ref={rightCanvasRef} className={styles.stakeBackgroundCanvas} />
+        <video
+          ref={videoRef}
+          className={styles.stakeBackgroundVideoSource}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        >
+          <source src="/staking/brill-edited.mp4" type="video/mp4" />
+        </video>
+      </div>
+    </div>
+  );
+}
+
 function DiscordIcon() {
   return (
     <span className={styles.iconWrap}>
-      <img
-        src="/staking/discord-icon.svg"
-        alt=""
-        width={16}
-        height={16}
-        aria-hidden="true"
-        style={{ display: "block", position: "absolute", inset: 0 }}
-      />
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ display: "block", position: "absolute", inset: 0 }}>
+        <path d="M13.5447 2.7704C12.5249 2.30248 11.4313 1.95774 10.2879 1.76029C10.2671 1.75648 10.2463 1.766 10.2356 1.78505C10.0949 2.03519 9.93915 2.36152 9.83006 2.61802C8.60027 2.43391 7.37679 2.43391 6.17221 2.61802C6.0631 2.35582 5.90166 2.03519 5.76038 1.78505C5.74966 1.76664 5.72886 1.75711 5.70803 1.76029C4.56527 1.95711 3.47171 2.30185 2.45129 2.7704C2.44246 2.77421 2.43488 2.78057 2.42986 2.78881C0.355594 5.88772 -0.212633 8.91046 0.0661201 11.8957C0.0673814 11.9103 0.0755799 11.9243 0.086932 11.9332C1.45547 12.9382 2.78114 13.5483 4.08219 13.9528C4.10301 13.9591 4.12507 13.9515 4.13832 13.9343C4.44608 13.5141 4.72043 13.0709 4.95565 12.6049C4.96953 12.5776 4.95628 12.5452 4.92791 12.5344C4.49275 12.3693 4.0784 12.1681 3.67982 11.9395C3.64829 11.9211 3.64577 11.876 3.67477 11.8544C3.75865 11.7916 3.84255 11.7262 3.92264 11.6602C3.93713 11.6481 3.95732 11.6456 3.97435 11.6532C6.59286 12.8487 9.4277 12.8487 12.0153 11.6532C12.0323 11.6449 12.0525 11.6475 12.0677 11.6595C12.1478 11.7256 12.2316 11.7916 12.3161 11.8544C12.3451 11.876 12.3433 11.9211 12.3117 11.9395C11.9131 12.1725 11.4988 12.3693 11.063 12.5338C11.0346 12.5446 11.022 12.5776 11.0359 12.6049C11.2762 13.0703 11.5505 13.5134 11.8526 13.9337C11.8652 13.9515 11.8879 13.9591 11.9087 13.9528C13.2161 13.5483 14.5417 12.9382 15.9103 11.9332C15.9223 11.9243 15.9298 11.911 15.9311 11.8964C16.2647 8.44506 15.3723 5.44711 13.5655 2.78944C13.5611 2.78057 13.5535 2.77421 13.5447 2.7704ZM5.34668 10.078C4.55833 10.078 3.90876 9.35425 3.90876 8.46539C3.90876 7.57653 4.54574 6.85277 5.34668 6.85277C6.15392 6.85277 6.79721 7.58289 6.78459 8.46539C6.78459 9.35425 6.14761 10.078 5.34668 10.078ZM10.6632 10.078C9.87484 10.078 9.22526 9.35425 9.22526 8.46539C9.22526 7.57653 9.86222 6.85277 10.6632 6.85277C11.4704 6.85277 12.1137 7.58289 12.1011 8.46539C12.1011 9.35425 11.4704 10.078 10.6632 10.078Z" fill="currentColor"/>
+      </svg>
     </span>
   );
 }
@@ -154,7 +276,7 @@ function DiscordIcon() {
 function TwitterIcon() {
   return (
     <span className={styles.iconWrap}>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ display: "block", position: "absolute", top: "2px", left: "2px" }}>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ display: "block", position: "absolute", inset: 0 }}>
         <path d="M9.52052 6.77871L13.9811 1.66699H12.9244L9.05115 6.10325L5.95814 1.66699H2.39062L7.06839 8.37371L2.39062 13.7344H3.44736L7.53731 9.04916L10.8034 13.7344H14.3709L9.52026 6.77871H9.52052ZM8.07293 8.43642L7.59907 7.77341L3.82816 2.49505H5.45172L8.49517 6.7566L8.96903 7.41961L12.925 12.9579H11.3014L8.07293 8.43668V8.43642Z" fill="currentColor"/>
       </svg>
     </span>
@@ -164,14 +286,9 @@ function TwitterIcon() {
 function TelegramIcon() {
   return (
     <span className={styles.iconWrap}>
-      <img
-        src="/staking/telegram-icon.svg"
-        alt=""
-        width={16}
-        height={16}
-        aria-hidden="true"
-        style={{ display: "block", position: "absolute", inset: 0 }}
-      />
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ display: "block", position: "absolute", inset: 0 }}>
+        <path fillRule="evenodd" clipRule="evenodd" d="M1.02135 7.45157C5.00953 5.75809 7.66894 4.64165 8.9996 4.10223C12.7988 2.56211 13.5882 2.29458 14.1028 2.28574C14.216 2.28379 14.469 2.31113 14.633 2.44076C14.7714 2.55021 14.8094 2.69807 14.8277 2.80184C14.8459 2.90562 14.8686 3.14202 14.8506 3.32673C14.6446 5.43505 13.7538 10.5514 13.3006 12.9127C13.1088 13.9119 12.7312 14.2469 12.3657 14.2797C11.5712 14.351 10.9679 13.768 10.1985 13.2764C8.9944 12.5071 8.31416 12.0283 7.14538 11.2777C5.79468 10.4102 6.67029 9.93336 7.44005 9.15416C7.6415 8.95024 11.1419 5.84715 11.2097 5.56566C11.2182 5.53045 11.226 5.39922 11.146 5.32992C11.066 5.26063 10.9479 5.28433 10.8627 5.30317C10.742 5.32988 8.81848 6.56899 5.09218 9.02048C4.5462 9.38584 4.05166 9.56392 3.60858 9.55456C3.12011 9.54432 2.18049 9.28544 1.48198 9.06408C0.625233 8.79272 -0.0556942 8.6492 0.00359929 8.18824C0.034483 7.94811 0.373734 7.70257 1.02135 7.45157Z" fill="currentColor"/>
+      </svg>
     </span>
   );
 }
@@ -423,7 +540,7 @@ function AccumulatedRewardsLiveline({ data, value, timeOffsetSecs = 0, windowSec
       data={chartData}
       value={chartValue}
       theme="dark"
-      color="#90F9FF"
+      color="#F4D6A3"
       window={windowSecs}
       grid={preset.grid}
       badge={preset.badge}
@@ -573,8 +690,7 @@ function Header({ activeNav, onNavChange, onWalletClick, isConnected }: {
       <div className={styles.headerInner}>
         {/* Logo */}
         <a href="/" className={styles.logo}>
-          <img src={ASSETS.logoShape} alt="Gemra logo mark" width={24} height={28} style={{ display: "block" }} />
-          <span className={styles.logoText}>Gemra</span>
+          <img src={ASSETS.headerLogo} alt="Gemra" width={107} height={40} style={{ display: "block" }} />
         </a>
 
         {/* Navigation */}
@@ -598,29 +714,8 @@ function Header({ activeNav, onNavChange, onWalletClick, isConnected }: {
 }
 
 // ---------------------------------------------------------------------------
-// Top bar (Steps + Stake/Unstake switch)
+// Top bar (Stake/Unstake switch)
 // ---------------------------------------------------------------------------
-
-const STEP_DOT_POSITIONS = [
-  { left: "63.64%", right: "31.17%" },
-  { left: "79.22%", right: "15.58%" },
-  { left: "94.81%", right: "0" },
-];
-
-function StepsIndicator({ activeStep }: { activeStep: number }) {
-  return (
-    <div className={styles.stepsIndicator}>
-      <span className={styles.stepsLabel}>Steps</span>
-      {STEP_DOT_POSITIONS.map((pos, i) => (
-        <div
-          key={i}
-          className={`${styles.stepDot} ${i + 1 === Math.min(activeStep, STEP_DOT_POSITIONS.length) ? styles.stepDotActive : styles.stepDotDefault}`}
-          style={{ left: pos.left, right: pos.right }}
-        />
-      ))}
-    </div>
-  );
-}
 
 const MODE_TABS = [
   { id: "stake"   as const, label: "Stake"   },
@@ -800,12 +895,12 @@ function PeriodGrid({ selected, onSelect }: {
   onSelect: (i: number) => void;
 }) {
   return (
-    <div>
+    <div className={styles.stakeSectionCard}>
       <div className={styles.sectionLabel}>
         <span className={styles.sectionLabelText}>Lock period</span>
         <InfoTooltip
           width={284}
-          text="Choosing a longer lock period gives you a higher APY. Your tokens stay in the smart contract until the unlock date — early withdrawal is not possible."
+          text="Longer periods earn higher APY. Tokens are locked until the end date — early withdrawal is not available."
         />
       </div>
       <div className={styles.periodGrid}>
@@ -815,10 +910,10 @@ function PeriodGrid({ selected, onSelect }: {
             className={`${styles.periodCard} ${i === selected ? styles.periodCardActive : styles.periodCardDefault}`}
             onClick={() => onSelect(i)}
           >
+            <span className={styles.periodApy}>APY {Math.round(p.apy * 100)}%</span>
             <span className={`${styles.periodLabel} ${i === selected ? styles.periodLabelActive : styles.periodLabelDefault}`}>
               {p.duration}
             </span>
-            <span className={styles.periodApy}>APY {Math.round(p.apy * 100)}%</span>
           </button>
         ))}
       </div>
@@ -830,35 +925,43 @@ function PeriodGrid({ selected, onSelect }: {
 // Auto-compound toggle
 // ---------------------------------------------------------------------------
 
-function AutoCompoundRow({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+function AutoCompoundRow({ on, onToggle, amount, periodIndex }: { on: boolean; onToggle: () => void; amount: string; periodIndex: number }) {
   const helperText = on
-    ? "Higher total rewards: earnings are re-staked every 24h."
-    : "Rewards stay separate and remain claimable.";
+    ? "Earnings are re-staked every 24h"
+    : "Rewards stay separate and remain claimable";
+  const period = PERIODS[periodIndex];
+  const simpleReward = parseFloat(calcRewards(amount || "100", period, false));
+  const compoundReward = parseFloat(calcRewards(amount || "100", period, true));
+  const upliftPercent = simpleReward > 0
+    ? Math.round(((compoundReward - simpleReward) / simpleReward) * 100)
+    : 0;
 
   return (
-    <div>
-      <div className={styles.sectionLabel}>
-        <span className={styles.sectionLabelText}>Reward settings</span>
+    <div className={`${styles.stakeSectionCard} ${styles.autoCompoundSection}`}>
+      <div className={`${styles.sectionLabel} ${styles.autoCompoundSectionLabel}`}>
+        <span className={styles.sectionLabelText}>AUTO-COMPOUND</span>
         <InfoTooltip
-          width={354}
-          text="Auto-compound usually results in higher total rewards because earnings are added back to your stake every 24 hours. When off, rewards accumulate separately and can be claimed instead."
+          width={284}
+          text="Rewards are restaked every 24h, growing your position automatically. Disable to claim them manually."
         />
       </div>
       <div className={styles.autoCompoundRow} onClick={onToggle}>
-        <div className={styles.autoCompoundText}>
-          <span className={styles.autoCompoundLabel}>Auto-compound</span>
-          <span className={styles.autoCompoundHint}>{helperText}</span>
-        </div>
-        <button
-          role="switch"
-          aria-checked={on}
-          className={`${styles.toggle} ${on ? styles.toggleOn : styles.toggleOff}`}
-          tabIndex={-1}
-        >
-          <span className={`${styles.toggleThumb} ${on ? styles.toggleThumbOn : styles.toggleThumbOff}`}>
-            <span className={styles.toggleThumbInner} />
+        <span className={styles.autoCompoundHint}>{helperText}</span>
+        <div className={styles.autoCompoundToggleGroup}>
+          <span className={`${styles.autoCompoundUplift} ${on ? styles.autoCompoundUpliftOn : styles.autoCompoundUpliftOff}`}>
+            +{upliftPercent}%
           </span>
-        </button>
+          <button
+            role="switch"
+            aria-checked={on}
+            className={`${styles.toggle} ${on ? styles.toggleOn : styles.toggleOff}`}
+            tabIndex={-1}
+          >
+            <span className={`${styles.toggleThumb} ${on ? styles.toggleThumbOn : styles.toggleThumbOff}`}>
+              <span className={styles.toggleThumbInner} />
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -980,6 +1083,62 @@ function StakeFaqItem({
   );
 }
 
+function FaqModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [openItem, setOpenItem] = useState<string | null>(STAKE_FAQ_ITEMS[0].id);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [open, onClose]);
+
+  function toggleItem(id: string) {
+    setOpenItem((current) => (current === id ? null : id));
+  }
+
+  return (
+    <>
+      <div
+        className={`${styles.wmBackdrop} ${open ? styles.wmBackdropOpen : ""}`}
+        onClick={open ? onClose : undefined}
+        aria-hidden="true"
+      />
+      <div
+        className={`${styles.faqModalPanel} ${open ? styles.faqModalPanelOpen : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="FAQ"
+      >
+        <div className={styles.faqModalHeader}>
+          <span className={styles.faqModalTitle}>FAQ</span>
+          <button className={`${styles.wmCloseBtn} ${styles.faqModalCloseBtn}`} onClick={onClose} aria-label="Close">
+            <span className={styles.wmEscHint}>ESC</span>
+            {UM_CLOSE_SVG}
+          </button>
+        </div>
+
+        <div className={styles.faqModalContent}>
+          <div className={styles.faqModalFaqShell}>
+            <div className={styles.stakeFaqStack}>
+              {STAKE_FAQ_ITEMS.map((item) => (
+                <StakeFaqItem
+                  key={item.id}
+                  item={item}
+                  isOpen={openItem === item.id}
+                  onToggle={() => toggleItem(item.id)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // RollingNumber — slot-machine digit animation
 // ---------------------------------------------------------------------------
@@ -1058,8 +1217,8 @@ function EstimatedRewards({ amount, periodIndex, autoCompound }: {
   const compoundLabel = autoCompound ? "with compound" : "simple interest";
 
   return (
-    <div className={styles.estimatedRewards}>
-      <div className={styles.rewardsDividerTop} />
+    <div className={`${styles.stakeSectionCard} ${styles.stakeRewardsSection}`}>
+      <div className={styles.estimatedRewards}>
       <span className={styles.rewardsAmount}>
         <RollingNumber value={reward} />
         {"\u00a0GRA"}
@@ -1067,7 +1226,7 @@ function EstimatedRewards({ amount, periodIndex, autoCompound }: {
       <span className={styles.rewardsCaption}>
         Estimated rewards at {apyPct}% APY {compoundLabel}
       </span>
-      <div className={styles.rewardsDividerBottom} />
+      </div>
     </div>
   );
 }
@@ -1076,10 +1235,9 @@ function EstimatedRewards({ amount, periodIndex, autoCompound }: {
 // Step 2 — Review screen
 // ---------------------------------------------------------------------------
 
-function ReviewStep2({ selectedPeriod, amount, onBack, onStake }: {
+function ReviewStep2({ selectedPeriod, amount, onStake }: {
   selectedPeriod: number;
   amount: string;
-  onBack: () => void;
   onStake: () => void;
 }) {
   const period = PERIODS[selectedPeriod];
@@ -1136,28 +1294,6 @@ function ReviewStep2({ selectedPeriod, amount, onBack, onStake }: {
       <path d="M14.978 14.98C14.728 11.81 12.188 9.27 9.01805 9.02C8.84805 9.01 8.66805 9 8.49805 9C4.90805 9 1.99805 11.91 1.99805 15.5C1.99805 19.09 4.90805 22 8.49805 22C12.088 22 14.998 19.09 14.998 15.5C14.998 15.33 14.988 15.15 14.978 14.98ZM9.37805 16.38L8.49805 18L7.61805 16.38L5.99805 15.5L7.61805 14.62L8.49805 13L9.37805 14.62L10.998 15.5L9.37805 16.38Z" fill="#A5A3AC"/>
     </svg>
   );
-  const s2InfoSvg = (
-    <span
-      aria-hidden="true"
-      style={{
-        display: "block",
-        width: 14,
-        height: 14,
-        flexShrink: 0,
-        marginTop: 1,
-        backgroundColor: "#B7AFFF",
-        maskImage: `url(${ASSETS.infoIcon})`,
-        WebkitMaskImage: `url(${ASSETS.infoIcon})`,
-        maskSize: "contain",
-        WebkitMaskSize: "contain",
-        maskRepeat: "no-repeat",
-        WebkitMaskRepeat: "no-repeat",
-        maskPosition: "center",
-        WebkitMaskPosition: "center",
-      }}
-    />
-  );
-
   const rows = [
     { icon: s2TimerSvg,  label: "Lock duration", value: period.duration,                         dimIcon: false },
     { icon: s2UnlockSvg, label: "Unlock date",   value: formatUnlockDate(period.days),           dimIcon: false },
@@ -1167,54 +1303,27 @@ function ReviewStep2({ selectedPeriod, amount, onBack, onStake }: {
 
   return (
     <div className={styles.s2Content}>
-      {/* Header — reuses cardHeader layout */}
-      <div className={styles.cardHeader}>
-        <h2 className={styles.cardTitle}>Review your stake</h2>
-        <button className={styles.s2BackBtn} onClick={onBack} aria-label="Go back">
-          <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, flexShrink: 0 }}>
-            <svg width="16" height="16" viewBox="0 0 19.0001 14.1394" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ display: "block" }}>
-              <path d="M6.36328 0.292815C6.75382 -0.0975529 7.38687 -0.0976571 7.77734 0.292815C8.16766 0.6833 8.16766 1.31639 7.77734 1.70688L2.41406 7.06918L7.77734 12.4325C8.16776 12.8229 8.16754 13.456 7.77734 13.8465C7.38682 14.2371 6.75381 14.2371 6.36328 13.8465L0.292969 7.77719C0.105506 7.58973 8.268e-05 7.33526 0 7.07016C0 6.80502 0.10553 6.55065 0.292969 6.36313L6.36328 0.292815Z" fill="#A5A3AC"/>
-              <path d="M18.0001 6.06985C18.5523 6.06989 19.0001 6.51759 19.0001 7.06985C19.0001 7.62211 18.5523 8.0698 18.0001 8.06985H1.17C0.617715 8.06985 0.17 7.62213 0.17 7.06985C0.17 6.51756 0.617715 6.06985 1.17 6.06985H18.0001Z" fill="#A5A3AC"/>
-            </svg>
-          </span>
-        </button>
-      </div>
-
-      <div className={styles.s2Scrollable}>
-        {/* Rows + info block */}
-        <div className={styles.s2Rows}>
-          {rows.map((row, i) => (
-            <div key={row.label}>
-              <div className={styles.s2Divider} />
-              <div className={styles.s2Row}>
-                {/* 48×48 icon container — row 4 (stake amount) at 70% opacity per Figma */}
-                <div className={styles.s2RowIcon} style={row.dimIcon ? { opacity: 0.7 } : undefined}>
-                  {row.icon}
-                </div>
-                <div className={styles.s2RowTexts}>
-                  <span className={styles.s2RowLabel}>{row.label}</span>
-                  <span className={styles.s2RowValue}>{row.value}</span>
-                </div>
-              </div>
+      {rows.map((row) => (
+        <div key={row.label} className={`${styles.stakeSectionCard} ${styles.s2SectionCard}`}>
+          <div className={styles.s2Row}>
+            <div className={styles.s2RowIcon} style={row.dimIcon ? { opacity: 0.7 } : undefined}>
+              {row.icon}
             </div>
-          ))}
-          <div className={styles.s2Divider} />
+            <div className={styles.s2RowTexts}>
+              <span className={styles.s2RowLabel}>{row.label}</span>
+              <span className={styles.s2RowValue}>{row.value}</span>
+            </div>
+          </div>
         </div>
-
-        {/* Info block — purple-tinted */}
-        <div className={styles.s2InfoBlock}>
-          {s2InfoSvg}
-          <span className={styles.s2InfoText}>
-            Tokens will be locked until the unlock date and cannot be withdrawn.<br/>Please ensure you won&apos;t need these funds before then.
-          </span>
-        </div>
-      </div>
-
+      ))}
       <button className={styles.continueButton} onClick={onStake}>
         <span className={styles.continueButtonInner}>
           <span className={styles.continueButtonText}>Stake {stakeAmount.toFixed(2)} GRA</span>
         </span>
       </button>
+      <p className={styles.s2Footnote}>
+        Tokens will be locked until the unlock date and cannot be withdrawn. Please ensure you won&apos;t need these funds before then.
+      </p>
     </div>
   );
 }
@@ -1233,7 +1342,7 @@ function ConfirmingStep3() {
 
   return (
     <div className={styles.s3Container}>
-      <Lottie animationData={loaderAnimation} loop={true} style={{ width: 88, height: 88 }} />
+      <Lottie animationData={loaderAnimationAccent} loop={true} style={{ width: 88, height: 88 }} />
       <div className={styles.s3TextBlock}>
         <p className={styles.s3Title}>Confirming{".".repeat(dots)}</p>
         <p className={styles.s3Subtitle}>Awaiting wallet signature and blockchain confirmation.</p>
@@ -1272,29 +1381,31 @@ function SuccessStep4({ amount, onStakeMore, onViewPortfolio }: {
 }) {
   const stakeAmount = parseFloat(amount) || 0;
   return (
-    <div className={styles.s4Container} style={{ position: "relative", height: "100%" }}>
-      <div className={styles.s4Content} style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center", width: "100%" }}>
-        <SuccessStateIcon />
-        <div className={styles.s4TextBlock}>
-          <p className={styles.s4Title}>Stake successful!</p>
-          <p className={styles.s4Subtitle}>{stakeAmount.toFixed(2)} GRA is locked and working for you.</p>
-          <a
-            href="https://solscan.io/account/9C91mKpL3QnBtWsJvCXgT4rR8uHwXiQoMaSpVt35Ya1"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.s3ExplorerLink}
-          >
-            View in explorer
-          </a>
+    <div className={styles.s4Step}>
+      <div className={styles.s4Container}>
+        <div className={styles.s4Content}>
+          <SuccessStateIcon />
+          <div className={styles.s4TextBlock}>
+            <p className={styles.s4Title}>Stake successful!</p>
+            <p className={styles.s4Subtitle}>{stakeAmount.toFixed(2)} GRA is locked and working for you.</p>
+            <a
+              href="https://solscan.io/account/9C91mKpL3QnBtWsJvCXgT4rR8uHwXiQoMaSpVt35Ya1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.s3ExplorerLink}
+            >
+              View in explorer
+            </a>
+          </div>
         </div>
       </div>
-      <div className={styles.s4Buttons} style={{ position: "absolute", bottom: 0, left: 0, right: 0 }}>
-        <button className={`${styles.continueButton} ${styles.continueButtonSecondary}`} onClick={onViewPortfolio}>
+      <div className={styles.s4Buttons}>
+        <button className={styles.continueButton} onClick={onViewPortfolio}>
           <span className={styles.continueButtonInner}>
             <span className={styles.continueButtonText}>Open my portfolio</span>
           </span>
         </button>
-        <button className={`${styles.continueButton} ${styles.continueButtonTransparent}`} onClick={onStakeMore}>
+        <button className={`${styles.continueButton} ${styles.continueButtonSecondary}`} onClick={onStakeMore}>
           <span className={styles.continueButtonInner}>
             <span className={styles.continueButtonText}>Stake more</span>
           </span>
@@ -1404,56 +1515,59 @@ function StakeForm({ walletBalance, resetKey, formStep, onStepChange, onViewPort
 
   return (
     <div className={styles.stakeFormStack}>
-      <div className={styles.card}>
+      <div className={`${styles.card} ${displayStep === 1 ? styles.cardStepOne : ""} ${displayStep === 2 ? styles.cardStepReview : ""} ${displayStep === 3 ? styles.cardStepLoading : ""} ${displayStep === 4 ? styles.cardStepSuccess : ""}`}>
         <div className={phaseClass}>
           <div style={{ display: displayStep === 1 ? "block" : "none" }}>
-            <div className={styles.cardHeader}>
-              <h1 className={styles.cardTitle}>Stake GRA</h1>
-              <div className={styles.walletBalance}>
-                <WalletIcon />
-                <span className={styles.walletBalanceText}>{walletBalance.toLocaleString("en", { minimumFractionDigits: 2 })} GRA</span>
+            <div className={styles.stakeStepOne}>
+              <div className={styles.stakeSectionCard}>
+                <div className={styles.stakeAvailableRow}>
+                  <span className={styles.stakeAvailableLabel}>Available to stake</span>
+                  <div className={styles.walletBalance}>
+                    <WalletIcon />
+                    <span className={styles.walletBalanceText}>{walletBalance.toLocaleString("en", { minimumFractionDigits: 2 })} GRA</span>
+                  </div>
+                </div>
+
+                <AmountInput
+                  value={amount}
+                  onChange={handleAmountChange}
+                  onHalf={handleHalf}
+                  onMax={handleMax}
+                  activeChip={activeChip}
+                  errorMessage={amountErrorMessage}
+                />
               </div>
+
+              <PeriodGrid selected={selectedPeriod} onSelect={setSelectedPeriod} />
+
+              <AutoCompoundRow on={autoCompound} onToggle={() => setAutoCompound((v) => !v)} amount={amount} periodIndex={selectedPeriod} />
+
+              <EstimatedRewards
+                amount={amount}
+                periodIndex={selectedPeriod}
+                autoCompound={autoCompound}
+              />
+
+              {isConnected ? (
+                <button className={styles.continueButton} onClick={() => onStepChange(2)} disabled={!amount || amountNumber <= 0 || amountNumber > walletBalance}>
+                  <span className={styles.continueButtonInner}>
+                    <span className={styles.continueButtonText}>Continue</span>
+                  </span>
+                </button>
+              ) : (
+                <button className={`${styles.continueButton} ${styles.continueButtonSecondary}`} onClick={onConnect}>
+                  <span className={styles.continueButtonInner}>
+                    <span className={styles.continueButtonText}>Connect wallet</span>
+                  </span>
+                </button>
+              )}
             </div>
-
-            <AmountInput
-              value={amount}
-              onChange={handleAmountChange}
-              onHalf={handleHalf}
-              onMax={handleMax}
-              activeChip={activeChip}
-              errorMessage={amountErrorMessage}
-            />
-
-            <PeriodGrid selected={selectedPeriod} onSelect={setSelectedPeriod} />
-
-            <AutoCompoundRow on={autoCompound} onToggle={() => setAutoCompound((v) => !v)} />
-
-            <EstimatedRewards
-              amount={amount}
-              periodIndex={selectedPeriod}
-              autoCompound={autoCompound}
-            />
-
-            {isConnected ? (
-              <button className={styles.continueButton} onClick={() => onStepChange(2)} disabled={!amount || amountNumber <= 0 || amountNumber > walletBalance}>
-                <span className={styles.continueButtonInner}>
-                  <span className={styles.continueButtonText}>Continue</span>
-                </span>
-              </button>
-            ) : (
-              <button className={`${styles.continueButton} ${styles.continueButtonSecondary}`} onClick={onConnect}>
-                <span className={styles.continueButtonInner}>
-                  <span className={styles.continueButtonText}>Connect wallet</span>
-                </span>
-              </button>
-            )}
           </div>
 
           <div className={styles.stakeStep} style={{ display: displayStep === 2 ? "flex" : "none" }}>
             <ReviewStep2
               selectedPeriod={selectedPeriod}
               amount={amount}
-              onBack={() => onStepChange(1)}
               onStake={() => onStepChange(3)}
             />
           </div>
@@ -1471,7 +1585,6 @@ function StakeForm({ walletBalance, resetKey, formStep, onStepChange, onViewPort
           </div>
         </div>
       </div>
-      {displayStep === 1 && <StakeFaq />}
     </div>
   );
 }
@@ -1524,27 +1637,28 @@ function Toast({ visible, message = "Address copied" }: { visible: boolean; mess
 
 function EmptyUnstakeView({ onStartStaking }: { onStartStaking: () => void }) {
   return (
-    <div className={styles.card} style={{ minHeight: '604px' }}>
-      <div className={styles.unstakeContainer}>
-        <div className={styles.unstakeTokensImg}>
-          <img src={ASSETS.unstakeBlankStatus} alt="" width={435} height={247} style={{ display: "block", width: "100%", height: "100%" }} />
-        </div>
-        <div className={styles.unstakeContentBlock}>
-          <div className={styles.unstakeTextBlock}>
-            <p className={styles.unstakeTitle}>No active stakes</p>
-            <p className={styles.unstakeSubtitle}>Start staking to earn rewards.</p>
+    <div className={styles.emptyUnstakeStep}>
+      <div className={styles.emptyUnstakeCard}>
+        <div className={styles.unstakeContainer}>
+          <div className={styles.unstakeTokensImg}>
+            <img src={ASSETS.unstakeBlankStatus} alt="" width={272} height={252} style={{ display: "block", width: "100%", height: "100%" }} />
           </div>
-          <button
-            className={`${styles.continueButton} ${styles.continueButtonSecondary} ${styles.unstakeBtn}`}
-            style={{ width: '144px' }}
-            onClick={onStartStaking}
-          >
-            <span className={styles.continueButtonInner}>
-              <span className={styles.continueButtonText}>Start staking</span>
-            </span>
-          </button>
+          <div className={styles.unstakeContentBlock}>
+            <div className={styles.unstakeTextBlock}>
+              <p className={styles.unstakeTitle}>No active stakes</p>
+              <p className={styles.unstakeSubtitle}>Start staking to earn rewards.</p>
+            </div>
+          </div>
         </div>
       </div>
+      <button
+        className={`${styles.continueButton} ${styles.continueButtonSecondary} ${styles.emptyUnstakeCta}`}
+        onClick={onStartStaking}
+      >
+        <span className={styles.continueButtonInner}>
+          <span className={styles.continueButtonText}>Start staking</span>
+        </span>
+      </button>
     </div>
   );
 }
@@ -1567,6 +1681,7 @@ function PositionCard({ stake, now, onUnstake, onToggleAutoCompound, onHarvest, 
   const rewardsLabel = stake.autoCompound ? "Compounded rewards" : "Rewards earned";
   const rewardsValue = stake.autoCompound ? (stake.compoundedTotal ?? 0) + accValue : accValue;
   const unlockValue = isUnlocked ? formatUnlockDisplay(stake.unlockDate) : `${unlockLabel} ${unlockSublabel}`.trim();
+  const unlockValueMatch = !isUnlocked ? unlockValue.match(/^(.*?)(\s*\([^)]+\))$/) : null;
 
   function handleToggle() {
     const next = !stake.autoCompound;
@@ -1589,95 +1704,104 @@ function PositionCard({ stake, now, onUnstake, onToggleAutoCompound, onHarvest, 
           </div>
         </div>
 
-        <div className={styles.positionDivider1} />
-
-        <div className={styles.positionRow}>
-          <div className={styles.positionRowLeft}>
-            <div className={styles.positionIconBox}>
-              <img src="/staking/compounded-icon-card.svg" alt="" width={20} height={20} style={{ display: "block" }} />
+        <div className={styles.positionDetailsPanel}>
+          <div className={styles.positionRow}>
+            <div className={styles.positionRowLeft}>
+              <div className={styles.positionIconBox}>
+                <img src="/staking/compounded-icon-card.svg" alt="" width={20} height={20} style={{ display: "block" }} />
+              </div>
+              <div className={styles.positionRowText}>
+                <span className={styles.positionSectionLabel}>Auto-compound</span>
+                <span className={styles.positionSectionValue}>{stake.autoCompound ? "Enabled" : "Disabled"}</span>
+              </div>
             </div>
-            <div className={styles.positionRowText}>
-              <span className={styles.positionSectionLabel}>Auto-compound</span>
-              <span className={styles.positionSectionValue}>{stake.autoCompound ? "Enabled" : "Disabled"}</span>
-            </div>
-          </div>
-          <div className={styles.positionRowAction}>
-            <button
-              role="switch"
-              aria-checked={stake.autoCompound}
-              className={`${styles.toggle} ${stake.autoCompound ? styles.toggleOn : styles.toggleOff}`}
-              onClick={handleToggle}
-            >
-              <span className={`${styles.toggleThumb} ${stake.autoCompound ? styles.toggleThumbOn : styles.toggleThumbOff}`}>
-                <span className={styles.toggleThumbInner} />
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.positionDivider2} />
-
-        <div className={styles.positionRow}>
-          <div className={styles.positionRowLeft}>
-            <div className={styles.positionIconBox}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-                <g transform="translate(4 3.58)">
-                  <path d="M14.736 8.416V13.469C14.736 15.33 13.229 16.837 11.368 16.837H4.631C2.77 16.837 1.263 15.33 1.263 13.469V8.416C1.263 7.953 1.642 7.574 2.105 7.574H3.764C4.227 7.574 4.606 7.953 4.606 8.416V11.06C4.606 11.683 4.951 12.256 5.499 12.551C5.743 12.686 6.012 12.753 6.29 12.753C6.61 12.753 6.93 12.66 7.208 12.475L8.008 11.953L8.749 12.45C9.263 12.795 9.92 12.837 10.467 12.542C11.023 12.248 11.368 11.683 11.368 11.052V8.416C11.368 7.953 11.747 7.574 12.21 7.574H13.894C14.357 7.574 14.736 7.953 14.736 8.416Z" fill="#A5A3AC"/>
-                  <path d="M15.999 4.206V5.048C15.999 5.974 15.553 6.732 14.315 6.732H1.684C0.396 6.732 0 5.974 0 5.048V4.206C0 3.279 0.396 2.521 1.684 2.521H14.315C15.553 2.521 15.999 3.279 15.999 4.206Z" fill="#A5A3AC"/>
-                  <path d="M7.696 2.524H3.048C2.761 2.213 2.77 1.733 3.073 1.429L4.269 0.234C4.58 -0.078 5.094 -0.078 5.405 0.234L7.696 2.524Z" fill="#A5A3AC"/>
-                  <path d="M12.942 2.524H8.294L10.584 0.234C10.896 -0.078 11.41 -0.078 11.721 0.234L12.917 1.429C13.22 1.733 13.228 2.213 12.942 2.524Z" fill="#A5A3AC"/>
-                  <path d="M9.658 7.574C10.121 7.574 10.5 7.953 10.5 8.416V11.052C10.5 11.726 9.751 12.13 9.195 11.751L8.437 11.246C8.159 11.06 7.797 11.06 7.511 11.246L6.719 11.768C6.163 12.138 5.422 11.734 5.422 11.069V8.416C5.422 7.953 5.801 7.574 6.264 7.574H9.658Z" fill="#A5A3AC"/>
-                </g>
-              </svg>
-            </div>
-            <div className={styles.positionRowText}>
-              <span className={styles.positionSectionLabel}>{rewardsLabel}</span>
-              <span className={styles.positionSectionValue}>{fmtRewardGra(rewardsValue)} GRA</span>
-            </div>
-          </div>
-          {!stake.autoCompound && (
             <div className={styles.positionRowAction}>
               <button
-                className={styles.positionHarvestBtn}
-                onClick={() => onHarvest(stake.id, accValue)}
-                disabled={accValue.toFixed(6) === "0.000000"}
-                aria-label="Harvest"
+                role="switch"
+                aria-checked={stake.autoCompound}
+                className={`${styles.toggle} ${stake.autoCompound ? styles.toggleOn : styles.toggleOff}`}
+                onClick={handleToggle}
               >
-                <span className={styles.positionUnstakeBtnInner}>
-                  <span className={styles.positionHarvestBtnText}>Harvest</span>
+                <span className={`${styles.toggleThumb} ${stake.autoCompound ? styles.toggleThumbOn : styles.toggleThumbOff}`}>
+                  <span className={styles.toggleThumbInner} />
                 </span>
               </button>
             </div>
-          )}
-        </div>
-
-        <div className={styles.positionDivider3} />
-
-        <div className={`${styles.positionRow} ${styles.positionRowLast}`}>
-          <div className={styles.positionRowLeft}>
-            <div className={styles.positionIconBox}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-                <path d="M12 4C7.592 4 4 7.592 4 12C4 16.408 7.592 20 12 20C16.408 20 20 16.408 20 12C20 7.592 16.408 4 12 4ZM15.48 14.856C15.368 15.048 15.168 15.152 14.96 15.152C14.856 15.152 14.752 15.128 14.656 15.064L12.176 13.584C11.56 13.216 11.104 12.408 11.104 11.696V8.416C11.104 8.088 11.376 7.816 11.704 7.816C12.032 7.816 12.304 8.088 12.304 8.416V11.696C12.304 11.984 12.544 12.408 12.792 12.552L15.272 14.032C15.56 14.2 15.656 14.568 15.48 14.856Z" fill="#A5A3AC"/>
-              </svg>
-            </div>
-            <div className={styles.positionRowText}>
-              <span className={`${styles.positionSectionLabel} ${isUnlocked ? styles.positionUnlockedLabel : ""}`}>
-                {isUnlocked ? "Unlocked" : "Unlock in"}
-              </span>
-              <span className={styles.positionSectionValue}>{unlockValue}</span>
-            </div>
           </div>
-          <div className={styles.positionRowAction}>
-            <button
-              className={`${styles.positionUnstakeBtn} ${isUnlocked ? styles.positionUnstakeBtnActive : styles.positionUnstakeBtnLocked}`}
-              onClick={() => { if (isUnlocked) onUnstake(stake.id); }}
-              disabled={!isUnlocked}
-              aria-label="Unstake"
-            >
-              <span className={styles.positionUnstakeBtnInner}>
-                <span className={styles.positionUnstakeBtnText}>Unstake</span>
-              </span>
-            </button>
+
+          <div className={styles.positionDivider1} />
+
+          <div className={styles.positionRow}>
+            <div className={styles.positionRowLeft}>
+              <div className={styles.positionIconBox}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
+                  <g transform="translate(4 3.58)">
+                    <path d="M14.736 8.416V13.469C14.736 15.33 13.229 16.837 11.368 16.837H4.631C2.77 16.837 1.263 15.33 1.263 13.469V8.416C1.263 7.953 1.642 7.574 2.105 7.574H3.764C4.227 7.574 4.606 7.953 4.606 8.416V11.06C4.606 11.683 4.951 12.256 5.499 12.551C5.743 12.686 6.012 12.753 6.29 12.753C6.61 12.753 6.93 12.66 7.208 12.475L8.008 11.953L8.749 12.45C9.263 12.795 9.92 12.837 10.467 12.542C11.023 12.248 11.368 11.683 11.368 11.052V8.416C11.368 7.953 11.747 7.574 12.21 7.574H13.894C14.357 7.574 14.736 7.953 14.736 8.416Z" fill="#A5A3AC"/>
+                    <path d="M15.999 4.206V5.048C15.999 5.974 15.553 6.732 14.315 6.732H1.684C0.396 6.732 0 5.974 0 5.048V4.206C0 3.279 0.396 2.521 1.684 2.521H14.315C15.553 2.521 15.999 3.279 15.999 4.206Z" fill="#A5A3AC"/>
+                    <path d="M7.696 2.524H3.048C2.761 2.213 2.77 1.733 3.073 1.429L4.269 0.234C4.58 -0.078 5.094 -0.078 5.405 0.234L7.696 2.524Z" fill="#A5A3AC"/>
+                    <path d="M12.942 2.524H8.294L10.584 0.234C10.896 -0.078 11.41 -0.078 11.721 0.234L12.917 1.429C13.22 1.733 13.228 2.213 12.942 2.524Z" fill="#A5A3AC"/>
+                    <path d="M9.658 7.574C10.121 7.574 10.5 7.953 10.5 8.416V11.052C10.5 11.726 9.751 12.13 9.195 11.751L8.437 11.246C8.159 11.06 7.797 11.06 7.511 11.246L6.719 11.768C6.163 12.138 5.422 11.734 5.422 11.069V8.416C5.422 7.953 5.801 7.574 6.264 7.574H9.658Z" fill="#A5A3AC"/>
+                  </g>
+                </svg>
+              </div>
+              <div className={styles.positionRowText}>
+                <span className={styles.positionSectionLabel}>{rewardsLabel}</span>
+                <span className={styles.positionSectionValue}>{fmtRewardGra(rewardsValue)} GRA</span>
+              </div>
+            </div>
+            {!stake.autoCompound && (
+              <div className={styles.positionRowAction}>
+                <button
+                  className={styles.positionHarvestBtn}
+                  onClick={() => onHarvest(stake.id, accValue)}
+                  disabled={accValue.toFixed(6) === "0.000000"}
+                  aria-label="Harvest"
+                >
+                  <span className={styles.positionUnstakeBtnInner}>
+                    <span className={styles.positionHarvestBtnText}>Harvest</span>
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.positionDivider2} />
+
+          <div className={`${styles.positionRow} ${styles.positionRowLast}`}>
+            <div className={styles.positionRowLeft}>
+              <div className={styles.positionIconBox}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
+                  <path d="M12 4C7.592 4 4 7.592 4 12C4 16.408 7.592 20 12 20C16.408 20 20 16.408 20 12C20 7.592 16.408 4 12 4ZM15.48 14.856C15.368 15.048 15.168 15.152 14.96 15.152C14.856 15.152 14.752 15.128 14.656 15.064L12.176 13.584C11.56 13.216 11.104 12.408 11.104 11.696V8.416C11.104 8.088 11.376 7.816 11.704 7.816C12.032 7.816 12.304 8.088 12.304 8.416V11.696C12.304 11.984 12.544 12.408 12.792 12.552L15.272 14.032C15.56 14.2 15.656 14.568 15.48 14.856Z" fill="#A5A3AC"/>
+                </svg>
+              </div>
+              <div className={styles.positionRowText}>
+                <span className={`${styles.positionSectionLabel} ${isUnlocked ? styles.positionUnlockedLabel : ""}`}>
+                  {isUnlocked ? "Unlocked" : "Unlock in"}
+                </span>
+                <span className={styles.positionSectionValue}>
+                  {unlockValueMatch ? (
+                    <>
+                      {unlockValueMatch[1]}
+                      <span className={styles.positionDateMuted}>{unlockValueMatch[2]}</span>
+                    </>
+                  ) : (
+                    unlockValue
+                  )}
+                </span>
+              </div>
+            </div>
+            <div className={styles.positionRowAction}>
+              <button
+                className={`${styles.positionUnstakeBtn} ${isUnlocked ? styles.positionUnstakeBtnActive : styles.positionUnstakeBtnLocked}`}
+                onClick={() => { if (isUnlocked) onUnstake(stake.id); }}
+                disabled={!isUnlocked}
+                aria-label="Unstake"
+              >
+                <span className={styles.positionUnstakeBtnInner}>
+                  <span className={styles.positionUnstakeBtnText}>Unstake</span>
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1733,13 +1857,13 @@ function UnstakeForm({ stakes, now, onStartStaking, onUnstake, onToggleAutoCompo
 // Time Simulator
 // ---------------------------------------------------------------------------
 
-function TimeSimulator({ simDate, onSimDateChange, mode }: {
+function TimeSimulator({ simDate, onSimDateChange, mode, expanded, onExpandedChange }: {
   simDate: Date | null;
   onSimDateChange: (d: Date | null) => void;
   mode: "stake" | "unstake";
+  expanded: boolean;
+  onExpandedChange: (next: boolean) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-
   const base = simDate ?? new Date();
 
   function skip(months: number) {
@@ -1754,85 +1878,86 @@ function TimeSimulator({ simDate, onSimDateChange, mode }: {
 
   return (
     <div
-      className={styles.timeSim}
-      style={{ height: expanded ? 209 : 48, display: mode !== "unstake" ? "none" : undefined }}
+      className={`${styles.timeSim} ${expanded ? styles.timeSimExpanded : styles.timeSimCollapsed}`}
+      onClick={() => onExpandedChange(!expanded)}
+      role="button"
+      tabIndex={0}
+      aria-expanded={expanded}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onExpandedChange(!expanded);
+        }
+      }}
     >
-      {/* Inset highlight */}
-      <div className={styles.timeSimInset} />
-
-      {/* Header row — always covers top 48px, toggles expanded state */}
-      <div className={styles.timeSimHeaderRow} onClick={() => setExpanded((v) => !v)}>
-        <span className={styles.timeSimTitle} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* vuesax/bold/timer */}
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ display: "block", flexShrink: 0 }}>
-            <path d="M11.5933 10.4467L8.89999 8H7.09332L4.39999 10.4467C3.64665 11.1267 3.39999 12.1733 3.76665 13.12C4.13332 14.06 5.02665 14.6667 6.03332 14.6667H9.95998C10.9733 14.6667 11.86 14.06 12.2267 13.12C12.5933 12.1733 12.3467 11.1267 11.5933 10.4467ZM9.21332 12.0933H6.78665C6.53332 12.0933 6.33332 11.8867 6.33332 11.64C6.33332 11.3933 6.53999 11.1867 6.78665 11.1867H9.21332C9.46665 11.1867 9.66665 11.3933 9.66665 11.64C9.66665 11.8867 9.45998 12.0933 9.21332 12.0933Z" fill="#A5A3AC"/>
-            <path d="M12.2334 2.88C11.8668 1.94 10.9734 1.33333 9.96677 1.33333H6.03344C5.02677 1.33333 4.13344 1.94 3.76677 2.88C3.40677 3.82667 3.65344 4.87333 4.40677 5.55333L7.10011 8H8.90677L11.6001 5.55333C12.3468 4.87333 12.5934 3.82667 12.2334 2.88ZM9.21344 4.82H6.78677C6.53344 4.82 6.33344 4.61333 6.33344 4.36667C6.33344 4.12 6.54011 3.91333 6.78677 3.91333H9.21344C9.46677 3.91333 9.66677 4.12 9.66677 4.36667C9.66677 4.61333 9.46011 4.82 9.21344 4.82Z" fill="#A5A3AC"/>
-          </svg>
-          Time machine
-        </span>
-        {/* vuesax/bold/arrow-down */}
-        <svg
-          width="16" height="16" viewBox="0 0 24 24" fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className={expanded ? styles.timeSimArrowUp : undefined}
-          aria-hidden="true"
-        >
-          <path d="M17.92 8.18H12.31H6.08c-1.3 0-1.96 1.57-1.04 2.49l5.08 5.08c.83.83 2.19.83 3.02 0l1.99-1.99 3.09-3.09c.91-.92.25-2.49-1.05-2.49Z" fill="#A5A3AC"/>
-        </svg>
-      </div>
-
-      {/* Expanded content — always mounted, toggled via display:none to prevent remounting */}
-      <div style={{ display: expanded ? "contents" : "none" }}>
-        {/* Divider 1 — at top: 49px */}
-        <div className={styles.timeSimDivider} style={{ top: 49 }} />
-
-        {/* Date row — at top: 59px, shifted down 1px via inner relative container */}
-        <div className={styles.timeSimDateRow}>
-          <div className={styles.timeSimDateRowInner}>
-            <span className={styles.timeSimDateLabel}>Simulated date</span>
-            <span className={styles.timeSimDateValue}>{dateStr}</span>
-          </div>
-        </div>
-
-        {/* Divider 2 — at top: 86px */}
-        <div className={styles.timeSimDivider} style={{ top: 86 }} />
-
-        {/* Skip buttons — at top: 102px */}
-        <div className={styles.timeSimSkipGrid}>
-          {([3, 6, 9, 12] as const).map((mo) => (
-            <button
-              key={mo}
-              className={`${styles.continueButton} ${styles.continueButtonSecondary}`}
-              style={{ flex: "1 0 0", height: 44, width: "auto", borderRadius: 12 }}
-              onClick={() => skip(mo)}
-            >
-              <span className={styles.continueButtonInner} style={{ borderRadius: 11 }}>
-                <span className={styles.continueButtonText} style={{ fontSize: 12, lineHeight: "16px" }}>+{mo} m</span>
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Reset button — bottom: 19px = top: 158px */}
-        <button
-          className={`${styles.continueButton} ${styles.continueButtonSecondary}`}
-          style={{ position: "absolute", top: 158, left: 16, right: 16, width: "auto", height: 32 }}
-          onClick={() => onSimDateChange(null)}
-        >
-          <span className={styles.continueButtonInner} style={{ gap: 4 }}>
-            {/* vuesax/broken/refresh-2 — paths from Figma node 7272:1149 */}
-            <svg
-              width="16" height="16" viewBox="0 0 16 16" fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              style={{ display: "block", flexShrink: 0, position: "relative", zIndex: 1 }}
+      <div className={styles.timeSimHeaderRow}>
+        {expanded ? <span className={styles.timeSimTitle}>Time machine</span> : null}
+        <span className={styles.timeSimHeaderIcons}>
+          {!expanded ? (
+            <img
+              src="/staking/time-machine.svg"
+              alt=""
               aria-hidden="true"
-            >
-              <path d="M11.3656 12.4744C10.4304 13.18 9.26 13.6 8 13.6C4.9088 13.6 3.0216 10.4864 3.0216 10.4864M3.0216 10.4864H5.5528M3.0216 10.4864V13.2864M13.6 8C13.6 9.0192 13.3256 9.9768 12.8496 10.8M4.6568 3.5032C5.5864 2.8088 6.74 2.4 8 2.4C11.7352 2.4 13.6 5.5136 13.6 5.5136M13.6 5.5136V2.7136M13.6 5.5136H11.1136M2.4 8C2.4 6.9808 2.6688 6.0232 3.1448 5.2" stroke="#A5A3AC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className={styles.continueButtonText} style={{ fontSize: 12, lineHeight: "16px" }}>Reset to real-time</span>
-          </span>
-        </button>
+              className={styles.timeSimMachineIcon}
+            />
+          ) : null}
+          <svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className={`${styles.timeSimArrow} ${expanded ? styles.timeSimArrowExpanded : ""}`}
+            aria-hidden="true"
+          >
+            <path d="M17.92 8.18H12.31H6.08c-1.3 0-1.96 1.57-1.04 2.49l5.08 5.08c.83.83 2.19.83 3.02 0l1.99-1.99 3.09-3.09c.91-.92.25-2.49-1.05-2.49Z" fill="#A5A3AC"/>
+          </svg>
+        </span>
       </div>
+
+      {expanded ? (
+        <div className={styles.timeSimContent} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.timeSimDateBlock}>
+            <div className={styles.timeSimDivider} />
+            <div className={styles.timeSimDateRow}>
+              <div className={styles.timeSimDateRowInner}>
+                <span className={styles.timeSimDateLabel}>Simulated date</span>
+                <span className={styles.timeSimDateValue}>{dateStr}</span>
+              </div>
+            </div>
+            <div className={styles.timeSimDivider} />
+          </div>
+
+          <div className={styles.timeSimSkipGrid}>
+            {([3, 6, 9, 12] as const).map((mo) => (
+              <button
+                key={mo}
+                className={`${styles.continueButton} ${styles.continueButtonSecondary} ${styles.timeSimActionButton}`}
+                onClick={() => skip(mo)}
+              >
+                <span className={styles.continueButtonInner}>
+                  <span className={`${styles.continueButtonText} ${styles.timeSimButtonText}`}>+{mo} m</span>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            className={`${styles.continueButton} ${styles.continueButtonSecondary} ${styles.timeSimResetButton}`}
+            onClick={() => onSimDateChange(null)}
+          >
+            <span className={styles.continueButtonInner} style={{ gap: 4 }}>
+              <svg
+                width="16" height="16" viewBox="0 0 16 16" fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className={styles.timeSimResetIcon}
+                style={{ display: "block", flexShrink: 0, position: "relative", zIndex: 1 }}
+                aria-hidden="true"
+              >
+                <path d="M11.3656 12.4744C10.4304 13.18 9.26 13.6 8 13.6C4.9088 13.6 3.0216 10.4864 3.0216 10.4864M3.0216 10.4864H5.5528M3.0216 10.4864V13.2864M13.6 8C13.6 9.0192 13.3256 9.9768 12.8496 10.8M4.6568 3.5032C5.5864 2.8088 6.74 2.4 8 2.4C11.7352 2.4 13.6 5.5136 13.6 5.5136M13.6 5.5136V2.7136M13.6 5.5136H11.1136M2.4 8C2.4 6.9808 2.6688 6.0232 3.1448 5.2" stroke="#A5A3AC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className={`${styles.continueButtonText} ${styles.timeSimButtonText}`}>Reset to real-time</span>
+            </span>
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1941,7 +2066,7 @@ function HarvestModal({ open, stake, now, priorityFee, onClose, onConfirm }: {
         {phase === "loading" && (
           <div key="loading" className={styles.umScreen}>
             <div className={styles.umCenteredContent}>
-              <Lottie animationData={loaderAnimation} loop={true} style={{ width: 88, height: 88 }} />
+              <Lottie animationData={loaderAnimationAccent} loop={true} style={{ width: 88, height: 88 }} />
               <div className={styles.umTextBlock}>
                 <p className={styles.s3Title}>Harvesting{".".repeat(dots)}</p>
                 <p className={styles.umSubtitle}>Submitting transaction to Solana network.</p>
@@ -2369,7 +2494,7 @@ function UnstakeModal({ open, stake, now, priorityFee, onClose, onConfirm }: {
                     <path d="M9.31333 7.33333C9.68 7.33333 9.98 7.63333 9.98 8V10.0867C9.98 10.62 9.38667 10.94 8.94667 10.64L8.34667 10.24C8.12667 10.0933 7.84 10.0933 7.61333 10.24L6.98667 10.6533C6.54667 10.9467 5.96 10.6267 5.96 10.1V8C5.96 7.63333 6.26 7.33333 6.62667 7.33333H9.31333Z" fill="#AB9FF2"/>
                   </svg>
                   <span className={styles.umInfoText}>
-                    Your unclaimed rewards of {rewards.toFixed(6)} GRA will be automatically added to your wallet upon unstaking.
+                    Unclaimed rewards: {rewards.toFixed(6)} GRA. They will be added to your wallet when you unstake.
                   </span>
                 </div>
               )}
@@ -2386,7 +2511,7 @@ function UnstakeModal({ open, stake, now, priorityFee, onClose, onConfirm }: {
         {phase === "loading" && (
           <div key="loading" className={styles.umScreen}>
             <div className={styles.umCenteredContent}>
-              <Lottie animationData={loaderAnimation} loop={true} style={{ width: 88, height: 88 }} />
+              <Lottie animationData={loaderAnimationAccent} loop={true} style={{ width: 88, height: 88 }} />
               <div className={styles.umTextBlock}>
                 <p className={styles.s3Title}>Unstaking{".".repeat(dots)}</p>
                 <p className={styles.umSubtitle}>Submitting transaction to Solana network.</p>
@@ -2600,7 +2725,7 @@ function UnstakeBatchModal({ open, stakes, now, priorityFee, onClose, onConfirm,
                     <path d="M9.31333 7.33333C9.68 7.33333 9.98 7.63333 9.98 8V10.0867C9.98 10.62 9.38667 10.94 8.94667 10.64L8.34667 10.24C8.12667 10.0933 7.84 10.0933 7.61333 10.24L6.98667 10.6533C6.54667 10.9467 5.96 10.6267 5.96 10.1V8C5.96 7.63333 6.26 7.33333 6.62667 7.33333H9.31333Z" fill="#AB9FF2"/>
                   </svg>
                   <span className={styles.umInfoText}>
-                    Your unclaimed rewards of {totalRewards.toFixed(2)} GRA will be automatically added to your wallet upon unstaking.
+                    Unclaimed rewards: {totalRewards.toFixed(2)} GRA. They will be added to your wallet when you unstake.
                   </span>
                 </div>
               )}
@@ -2860,107 +2985,136 @@ function PortfolioPage({ stakes, unstakedHistory, now, chartAxisNow, onUnstake, 
       <div className={styles.portfolioStatsRow}>
 
         {/* Left card — Total staked */}
-        <div className={styles.portfolioStatCard}>
-          <span className={styles.portfolioCardTitle}>Total staked</span>
-          <span className={styles.portfolioCardTotal}>{fmtGra(totalStaked)} GRA</span>
-          <button
-            className={styles.portfolioCardBtn}
-            style={{ minWidth: 145 }}
-            onClick={onUnstakeAvailable}
-            disabled={availableToUnstake === 0}
-          >
-            <span className={styles.portfolioCardBtnInner}>
-              <span className={styles.portfolioCardBtnText}>Unstake available</span>
-            </span>
-          </button>
-          <div className={styles.portfolioCardDivider} style={{ top: 87 }} />
-          {/* Average APY */}
-          <div className={styles.portfolioCardRow} style={{ top: 103 }}>
-            <div className={styles.portfolioCardIconBox}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-                <g filter="url(#filter0_i_7337_2004)">
-                  <path d="M10.6347 1.59345C11.1164 1.12775 11.9704 1.45513 11.9706 2.16962V8.05927H15.0029C15.8593 8.05927 16.3499 9.03517 15.8388 9.72235L9.455 18.3024C8.99993 18.914 8.02824 18.5921 8.02824 17.8298V11.9411H4.99504C4.13866 11.9409 3.64882 10.9642 4.16008 10.277L10.5439 1.69696L10.6347 1.59345Z" fill="#A5A3AC"/>
-                </g>
-                <defs>
-                  <filter id="filter0_i_7337_2004" x="0" y="0" width="20" height="20.1667" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-                    <feFlood floodOpacity="0" result="BackgroundImageFix"/>
-                    <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
-                    <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-                    <feOffset dy="0.166667"/>
-                    <feGaussianBlur stdDeviation="0.0833333"/>
-                    <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
-                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/>
-                    <feBlend mode="normal" in2="shape" result="effect1_innerShadow_7337_2004"/>
-                  </filter>
-                </defs>
-              </svg>
+        <div className={`${styles.portfolioStatCard} ${styles.portfolioOverviewCard}`}>
+          <div className={styles.positionCard}>
+            <div className={`${styles.positionCardHeader} ${styles.portfolioOverviewHeader}`}>
+              <div className={styles.positionCardHeaderMain}>
+                <span className={styles.positionAmountLabel}>Total staked</span>
+                <span className={styles.positionAmount}>{fmtGra(totalStaked)} GRA</span>
+              </div>
+              <button
+                className={`${styles.positionUnstakeBtn} ${availableToUnstake > 0 ? styles.positionUnstakeBtnActive : styles.positionUnstakeBtnLocked} ${styles.portfolioOverviewTopBtn}`}
+                onClick={onUnstakeAvailable}
+                disabled={availableToUnstake === 0}
+              >
+                <span className={styles.positionUnstakeBtnInner}>
+                  <span className={styles.positionUnstakeBtnText}>Unstake available</span>
+                </span>
+              </button>
             </div>
-            <span className={styles.portfolioCardRowLabel}>Average APY</span>
-            <span className={styles.portfolioCardRowValue}>{avgApy.toFixed(1)}%</span>
-          </div>
-          <div className={styles.portfolioCardDivider} style={{ top: 159 }} />
-          {/* Compounded rewards */}
-          <div className={styles.portfolioCardRow} style={{ top: 175 }}>
-            <div className={styles.portfolioCardIconBox}>
-              <img
-                src="/staking/compounded-icon.svg"
-                alt=""
-                width={20}
-                height={20}
-                style={{ display: "block" }}
-              />
+
+            <div className={`${styles.positionDetailsPanel} ${styles.portfolioOverviewDetailsPanel}`}>
+              <div className={styles.positionRow}>
+                <div className={styles.positionRowLeft}>
+                  <div className={styles.positionIconBox}>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
+                      <g filter="url(#filter0_i_7337_2004)">
+                        <path d="M10.6347 1.59345C11.1164 1.12775 11.9704 1.45513 11.9706 2.16962V8.05927H15.0029C15.8593 8.05927 16.3499 9.03517 15.8388 9.72235L9.455 18.3024C8.99993 18.914 8.02824 18.5921 8.02824 17.8298V11.9411H4.99504C4.13866 11.9409 3.64882 10.9642 4.16008 10.277L10.5439 1.69696L10.6347 1.59345Z" fill="#A5A3AC"/>
+                      </g>
+                      <defs>
+                        <filter id="filter0_i_7337_2004" x="0" y="0" width="20" height="20.1667" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+                          <feFlood floodOpacity="0" result="BackgroundImageFix"/>
+                          <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+                          <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                          <feOffset dy="0.166667"/>
+                          <feGaussianBlur stdDeviation="0.0833333"/>
+                          <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+                          <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/>
+                          <feBlend mode="normal" in2="shape" result="effect1_innerShadow_7337_2004"/>
+                        </filter>
+                      </defs>
+                    </svg>
+                  </div>
+                  <div className={styles.positionRowText}>
+                    <span className={styles.positionSectionLabel}>Average APY</span>
+                    <span className={styles.positionSectionValue}>{avgApy.toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.positionDivider1} />
+
+              <div className={styles.positionRow}>
+                <div className={styles.positionRowLeft}>
+                  <div className={styles.positionIconBox}>
+                    <img
+                      src="/staking/compounded-icon.svg"
+                      alt=""
+                      width={20}
+                      height={20}
+                      style={{ display: "block" }}
+                    />
+                  </div>
+                  <div className={styles.positionRowText}>
+                    <span className={styles.positionSectionLabel}>Compounded rewards</span>
+                    <span className={styles.positionSectionValue}>{fmtGra(autoCompounded)} GRA</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.positionDivider1} />
+
+              <div className={`${styles.positionRow} ${styles.positionRowLast}`}>
+                <div className={styles.positionRowLeft}>
+                  <div className={styles.positionIconBox}>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
+                      <g filter="url(#filter0_i_7337_2003)">
+                        <path d="M13.125 6.875C15.311 6.875 17.0828 8.64703 17.083 10.833V14.167C17.0828 16.353 15.311 18.125 13.125 18.125H6.45801C4.27214 18.1248 2.50018 16.3529 2.5 14.167V10.833C2.50018 8.64714 4.27214 6.87518 6.45801 6.875H13.125ZM9.79199 11.042C9.44681 11.042 9.16699 11.3218 9.16699 11.667V13.334C9.16734 13.6789 9.44703 13.959 9.79199 13.959C10.1368 13.9588 10.4166 13.6788 10.417 13.334V11.667C10.417 11.3219 10.137 11.0422 9.79199 11.042Z" fill="#A5A3AC"/>
+                        <path d="M6.04167 5.83301C6.04175 4.79944 6.43779 3.85826 7.08659 3.15332C7.09875 3.1401 7.11137 3.1273 7.1237 3.11426C7.17954 3.05521 7.2372 2.99791 7.29655 2.94238C7.30647 2.93311 7.31584 2.92323 7.32585 2.91406C7.38983 2.85541 7.45634 2.7995 7.52409 2.74512C7.54055 2.73192 7.55722 2.71899 7.57389 2.70605C7.96633 2.40116 8.41757 2.16879 8.90788 2.02832C8.91227 2.02706 8.91715 2.02664 8.92155 2.02539C9.1038 1.97388 9.29116 1.9352 9.48307 1.91016C9.50033 1.90788 9.51755 1.90537 9.53483 1.90332C9.62545 1.89271 9.71687 1.88427 9.80924 1.87988C9.82096 1.87932 9.83269 1.87937 9.8444 1.87891C9.89592 1.87691 9.94766 1.875 9.99967 1.875V1.87793C10.4487 1.87789 10.8976 1.95135 11.3258 2.10352C12.1037 2.38004 12.7757 2.89295 13.2477 3.57031C13.445 3.85346 13.3755 4.24307 13.0924 4.44043C12.8092 4.63773 12.4196 4.56839 12.2223 4.28516C11.8993 3.82151 11.4393 3.47046 10.9069 3.28125C10.544 3.15228 10.1598 3.10476 9.77995 3.13574C9.75121 3.13805 9.72249 3.13938 9.69401 3.14258C9.58774 3.15466 9.48232 3.17447 9.3776 3.19922C9.29538 3.21857 9.21456 3.24092 9.13542 3.26758C9.087 3.28389 9.03912 3.30136 8.99186 3.32031C8.96364 3.33164 8.93562 3.34322 8.90788 3.35547C8.85583 3.37841 8.80494 3.40358 8.75456 3.42969C8.73412 3.4403 8.71316 3.44983 8.69303 3.46094C8.62475 3.49855 8.55854 3.53969 8.49381 3.58301C8.48819 3.58678 8.48281 3.59091 8.47721 3.59473C8.41734 3.63545 8.35888 3.6782 8.30241 3.72363C8.27613 3.7448 8.25072 3.76694 8.22526 3.78906C8.19082 3.81896 8.15665 3.8492 8.1237 3.88086C8.10162 3.90208 8.0806 3.92433 8.05924 3.94629C8.02187 3.98472 7.98501 4.02372 7.94987 4.06445C7.54008 4.53898 7.29175 5.15685 7.29167 5.83301V7.5H6.04167V5.83301Z" fill="#A5A3AC"/>
+                      </g>
+                      <defs>
+                        <filter id="filter0_i_7337_2003" x="0" y="0" width="20" height="20.2" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+                          <feFlood floodOpacity="0" result="BackgroundImageFix"/>
+                          <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+                          <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                          <feOffset dy="0.2"/>
+                          <feGaussianBlur stdDeviation="0.1"/>
+                          <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+                          <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/>
+                          <feBlend mode="normal" in2="shape" result="effect1_innerShadow_7337_2003"/>
+                        </filter>
+                      </defs>
+                    </svg>
+                  </div>
+                  <div className={styles.positionRowText}>
+                    <span className={styles.positionSectionLabel}>Available to unstake</span>
+                    <span className={styles.positionSectionValue}>{fmtGra(availableToUnstake)} GRA</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <span className={styles.portfolioCardRowLabel}>Compounded rewards</span>
-            <span className={styles.portfolioCardRowValue}>{fmtGra(autoCompounded)} GRA</span>
-          </div>
-          <div className={styles.portfolioCardDivider} style={{ top: 231 }} />
-          {/* Available to unstake */}
-          <div className={styles.portfolioCardRow} style={{ top: 247 }}>
-            <div className={styles.portfolioCardIconBox}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-                <g filter="url(#filter0_i_7337_2003)">
-                  <path d="M13.125 6.875C15.311 6.875 17.0828 8.64703 17.083 10.833V14.167C17.0828 16.353 15.311 18.125 13.125 18.125H6.45801C4.27214 18.1248 2.50018 16.3529 2.5 14.167V10.833C2.50018 8.64714 4.27214 6.87518 6.45801 6.875H13.125ZM9.79199 11.042C9.44681 11.042 9.16699 11.3218 9.16699 11.667V13.334C9.16734 13.6789 9.44703 13.959 9.79199 13.959C10.1368 13.9588 10.4166 13.6788 10.417 13.334V11.667C10.417 11.3219 10.137 11.0422 9.79199 11.042Z" fill="#A5A3AC"/>
-                  <path d="M6.04167 5.83301C6.04175 4.79944 6.43779 3.85826 7.08659 3.15332C7.09875 3.1401 7.11137 3.1273 7.1237 3.11426C7.17954 3.05521 7.2372 2.99791 7.29655 2.94238C7.30647 2.93311 7.31584 2.92323 7.32585 2.91406C7.38983 2.85541 7.45634 2.7995 7.52409 2.74512C7.54055 2.73192 7.55722 2.71899 7.57389 2.70605C7.96633 2.40116 8.41757 2.16879 8.90788 2.02832C8.91227 2.02706 8.91715 2.02664 8.92155 2.02539C9.1038 1.97388 9.29116 1.9352 9.48307 1.91016C9.50033 1.90788 9.51755 1.90537 9.53483 1.90332C9.62545 1.89271 9.71687 1.88427 9.80924 1.87988C9.82096 1.87932 9.83269 1.87937 9.8444 1.87891C9.89592 1.87691 9.94766 1.875 9.99967 1.875V1.87793C10.4487 1.87789 10.8976 1.95135 11.3258 2.10352C12.1037 2.38004 12.7757 2.89295 13.2477 3.57031C13.445 3.85346 13.3755 4.24307 13.0924 4.44043C12.8092 4.63773 12.4196 4.56839 12.2223 4.28516C11.8993 3.82151 11.4393 3.47046 10.9069 3.28125C10.544 3.15228 10.1598 3.10476 9.77995 3.13574C9.75121 3.13805 9.72249 3.13938 9.69401 3.14258C9.58774 3.15466 9.48232 3.17447 9.3776 3.19922C9.29538 3.21857 9.21456 3.24092 9.13542 3.26758C9.087 3.28389 9.03912 3.30136 8.99186 3.32031C8.96364 3.33164 8.93562 3.34322 8.90788 3.35547C8.85583 3.37841 8.80494 3.40358 8.75456 3.42969C8.73412 3.4403 8.71316 3.44983 8.69303 3.46094C8.62475 3.49855 8.55854 3.53969 8.49381 3.58301C8.48819 3.58678 8.48281 3.59091 8.47721 3.59473C8.41734 3.63545 8.35888 3.6782 8.30241 3.72363C8.27613 3.7448 8.25072 3.76694 8.22526 3.78906C8.19082 3.81896 8.15665 3.8492 8.1237 3.88086C8.10162 3.90208 8.0806 3.92433 8.05924 3.94629C8.02187 3.98472 7.98501 4.02372 7.94987 4.06445C7.54008 4.53898 7.29175 5.15685 7.29167 5.83301V7.5H6.04167V5.83301Z" fill="#A5A3AC"/>
-                </g>
-                <defs>
-                  <filter id="filter0_i_7337_2003" x="0" y="0" width="20" height="20.2" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-                    <feFlood floodOpacity="0" result="BackgroundImageFix"/>
-                    <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
-                    <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-                    <feOffset dy="0.2"/>
-                    <feGaussianBlur stdDeviation="0.1"/>
-                    <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
-                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/>
-                    <feBlend mode="normal" in2="shape" result="effect1_innerShadow_7337_2003"/>
-                  </filter>
-                </defs>
-              </svg>
-            </div>
-            <span className={styles.portfolioCardRowLabel}>Available to unstake</span>
-            <span className={styles.portfolioCardRowValue}>{fmtGra(availableToUnstake)} GRA</span>
           </div>
         </div>
 
         {/* Right card — Accumulated rewards */}
-        <div className={styles.portfolioStatCard}>
-          <span className={styles.portfolioCardTitle}>Accumulated rewards</span>
-          <span className={styles.portfolioCardTotal}>{fmtAccumulatedRewardGra(availableToHarvest)} GRA</span>
-          <button
-            className={styles.portfolioCardBtn}
-            onClick={onHarvestAll}
-            disabled={availableToHarvest === 0}
-          >
-            <span className={styles.portfolioCardBtnInner}>
-              <span className={styles.portfolioCardBtnText}>Harvest all</span>
-            </span>
-          </button>
-          <div className={styles.portfolioRewardChartWrap}>
-            <div className={styles.portfolioRewardChart}>
-              <AccumulatedRewardsLiveline
-                data={accumulatedRewardsChartData}
-                value={availableToHarvest}
-                timeOffsetSecs={chartTimeOffsetSecs}
-              />
+        <div className={`${styles.portfolioStatCard} ${styles.portfolioRewardsCard}`}>
+          <div className={styles.positionCard}>
+            <div className={`${styles.positionCardHeader} ${styles.portfolioRewardsHeader}`}>
+              <div className={styles.positionCardHeaderMain}>
+                <span className={styles.positionAmountLabel}>Accumulated rewards</span>
+                <span className={styles.positionAmount}>{fmtAccumulatedRewardGra(availableToHarvest)} GRA</span>
+              </div>
+              <button
+                className={`${styles.positionUnstakeBtn} ${availableToHarvest > 0 ? styles.positionUnstakeBtnActive : styles.positionUnstakeBtnLocked} ${styles.portfolioRewardsTopBtn}`}
+                onClick={onHarvestAll}
+                disabled={availableToHarvest === 0}
+              >
+                <span className={styles.positionUnstakeBtnInner}>
+                  <span className={styles.positionUnstakeBtnText}>Harvest all</span>
+                </span>
+              </button>
+            </div>
+
+            <div className={`${styles.positionDetailsPanel} ${styles.portfolioRewardsDetailsPanel}`}>
+              <div className={styles.portfolioRewardsChartBox}>
+                <div className={styles.portfolioRewardChart}>
+                  <AccumulatedRewardsLiveline
+                    data={accumulatedRewardsChartData}
+                    value={availableToHarvest}
+                    timeOffsetSecs={chartTimeOffsetSecs}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -3125,6 +3279,7 @@ export default function StakingPage() {
   const [walletOpen, setWalletOpen] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("Address copied");
+  const [faqOpen, setFaqOpen] = useState(false);
   const [formResetKey, setFormResetKey] = useState(0);
   const [formStep, setFormStep] = useState(1);
   const [baseWalletBalance, setBaseWalletBalance] = useState(WALLET_BALANCE);
@@ -3138,6 +3293,8 @@ export default function StakingPage() {
   const [harvestStakeId, setHarvestStakeId] = useState<number | null>(null);
   const [harvestAllOpen, setHarvestAllOpen] = useState(false);
   const [unstakedHistory, setUnstakedHistory] = useState<UnstakedRecord[]>([]);
+  const [timeSimExpanded, setTimeSimExpanded] = useState<boolean | null>(null);
+  const [timeSimTouched, setTimeSimTouched] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Hydrate from localStorage on mount
@@ -3168,6 +3325,17 @@ export default function StakingPage() {
     }, 1000);
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (timeSimTouched) return;
+    if (activeNav === "portfolio") {
+      setTimeSimExpanded(false);
+      return;
+    }
+    if (mode === "unstake") {
+      setTimeSimExpanded(true);
+    }
+  }, [activeNav, mode, timeSimTouched]);
 
   function handleSimDateChange(next: Date | null) {
     if (next) {
@@ -3371,25 +3539,59 @@ export default function StakingPage() {
     simBaseDate && simBaseRealMs !== null
       ? new Date(simBaseDate.getTime() + (liveNow.getTime() - simBaseRealMs))
       : liveNow;
-  const isOverlayOpen = walletOpen || unstakeStakeId !== null || unstakeBatchOpen || harvestStakeId !== null || harvestAllOpen;
+  const isOverlayOpen = walletOpen || faqOpen || unstakeStakeId !== null || unstakeBatchOpen || harvestStakeId !== null || harvestAllOpen;
+  const showTimeSimulator = !isOverlayOpen && (activeNav === "portfolio" || mode === "unstake");
+
+  function handleTimeSimExpandedChange(next: boolean) {
+    setTimeSimTouched(true);
+    setTimeSimExpanded(next);
+  }
 
   return (
     <div className={styles.page}>
+      {activeNav === "stake" && <StakeBackgroundLoop />}
       <div className={`${styles.appShell} ${isOverlayOpen ? styles.appShellBlurred : ""}`}>
         <Header activeNav={activeNav} onNavChange={setActiveNav} onWalletClick={handleWalletClick} isConnected={isConnected} />
 
         <main className={styles.content}>
-        <div className={styles.stakeScreen} style={{ display: activeNav === "stake" ? "flex" : "none" }}>
-          <div className={styles.topBar}>
-            {mode === "stake" && <StepsIndicator activeStep={formStep} />}
-            <ModeSwitch mode={mode} onModeChange={setMode} />
-          </div>
-
-          <div style={{ display: mode === "stake" ? "block" : "none" }}>
-            <StakeForm walletBalance={walletBalance} resetKey={formResetKey} formStep={formStep} onStepChange={setFormStep} onViewPortfolio={() => setActiveNav("portfolio")} onStakeComplete={handleStakeComplete} isConnected={isConnected} onConnect={() => { setIsConnected(true); setFormResetKey((k) => k + 1); setFormStep(1); }} />
-          </div>
-          <div style={{ display: mode === "unstake" ? "block" : "none" }}>
-            <UnstakeForm stakes={stakes} now={now} onStartStaking={() => setMode("stake")} onUnstake={handleUnstake} onToggleAutoCompound={handleToggleAutoCompound} onHarvest={handleHarvest} onShowToast={showToast} />
+        <div className={styles.stakeStage} style={{ display: activeNav === "stake" ? "flex" : "none" }}>
+          <div className={styles.stakeViewport}>
+            <div className={styles.stakeScreen}>
+              <div className={styles.stakeMainColumn}>
+                <div className={styles.topBar}>
+                  {mode === "stake" && formStep === 2 ? (
+                    <div className={styles.topBarReview}>
+                      <button
+                        type="button"
+                        className={styles.topBarReviewButton}
+                        aria-label="Go back"
+                        onClick={() => setFormStep(1)}
+                      >
+                        <img
+                          src="/staking/review-back-icon.svg"
+                          alt=""
+                          width={20}
+                          height={20}
+                          aria-hidden="true"
+                          className={styles.topBarReviewIcon}
+                        />
+                      </button>
+                    </div>
+                  ) : (
+                    <ModeSwitch mode={mode} onModeChange={setMode} />
+                  )}
+                  <button type="button" className={styles.topBarHelpButton} aria-label="FAQ" onClick={() => setFaqOpen(true)}>
+                    <span className={styles.topBarHelpButtonLabel}>?</span>
+                  </button>
+                </div>
+                <div style={{ display: mode === "stake" ? "block" : "none" }}>
+                  <StakeForm walletBalance={walletBalance} resetKey={formResetKey} formStep={formStep} onStepChange={setFormStep} onViewPortfolio={() => setActiveNav("portfolio")} onStakeComplete={handleStakeComplete} isConnected={isConnected} onConnect={() => { setIsConnected(true); setFormResetKey((k) => k + 1); setFormStep(1); }} />
+                </div>
+                <div style={{ display: mode === "unstake" ? "block" : "none" }}>
+                  <UnstakeForm stakes={stakes} now={now} onStartStaking={() => setMode("stake")} onUnstake={handleUnstake} onToggleAutoCompound={handleToggleAutoCompound} onHarvest={handleHarvest} onShowToast={showToast} />
+                </div>
+              </div>
+            </div>
           </div>
           <Footer />
         </div>
@@ -3410,7 +3612,18 @@ export default function StakingPage() {
         )}
         </main>
       </div>
-      <TimeSimulator simDate={simBaseDate ? now : null} onSimDateChange={handleSimDateChange} mode={activeNav === "portfolio" ? "stake" : mode} />
+
+      {showTimeSimulator && timeSimExpanded !== null ? (
+        <TimeSimulator
+          simDate={simBaseDate ? now : null}
+          onSimDateChange={handleSimDateChange}
+          mode={mode}
+          expanded={timeSimExpanded}
+          onExpandedChange={handleTimeSimExpandedChange}
+        />
+      ) : null}
+
+      <FaqModal open={faqOpen} onClose={() => setFaqOpen(false)} />
 
       <WalletModal
         open={walletOpen}

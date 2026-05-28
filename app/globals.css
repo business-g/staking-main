@@ -44,19 +44,35 @@
 }
 
 :root {
-  --color-dark-950: #0d0d0d;
+  --color-dark-950: #030303;
   --color-dark-900: #141414;
   --color-dark-800: #1e1e1f;
   --color-dark-700: #252526;
+  --color-dark-600: #343436;
+  --color-dark-500: #5f5d68;
 
   --color-mid-50: #fafafa;
   --color-mid-400: #a5a3ac;
+  --color-mid-500: #8b8992;
 
-  --color-teal-100: #c8feff;
-  --color-teal-200: #90f9ff;
-  --color-teal-300: #6dbec2;
+  --color-accent-50: #fefbf5;
+  --color-accent-100: #fcf5e8;
+  --color-accent-200: #f9ebcf;
+  --color-accent-300: #f7e1b8;
+  --color-accent-400: #f5dbac;
+  --color-accent-500: #f4d6a3;
+  --color-accent-600: #d9b97e;
+  --color-accent-700: #b89458;
+  --color-accent-800: #8e6f3e;
+  --color-accent-900: #5f4927;
+  --color-green-500: #10a36a;
 
-  --font-ui: "Open Runde", sans-serif;
+  --color-teal-100: var(--color-accent-200);
+  --color-teal-200: var(--color-accent-500);
+  --color-teal-300: var(--color-accent-700);
+
+  --font-ui: var(--font-geist-sans), sans-serif;
+  --font-ui-mono: var(--font-geist-mono), monospace;
   --font-logo: "Funnel Display", sans-serif;
 
   --text-display-size: 26px;
